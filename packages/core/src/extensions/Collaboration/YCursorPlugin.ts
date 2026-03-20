@@ -1,4 +1,4 @@
-import { defaultSelectionBuilder, yCursorPlugin } from "y-prosemirror";
+import { defaultSelectionBuilder, yCursorPlugin } from "@y/prosemirror";
 import {
   createExtension,
   ExtensionOptions,
@@ -123,7 +123,7 @@ export const YCursorExtension = createExtension(
       key: "yCursor",
       prosemirrorPlugins: [
         awareness
-          ? yCursorPlugin(awareness, {
+          ? yCursorPlugin(awareness as any, {
               selectionBuilder: defaultSelectionBuilder,
               cursorBuilder(user: CollaborationUser, clientID: number) {
                 let cursorData = recentlyUpdatedCursors.get(clientID);

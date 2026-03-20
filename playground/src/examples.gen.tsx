@@ -457,8 +457,8 @@
             "Custom Schemas"
           ],
           "dependencies": {
-            "@mantine/core": "^8.3.11",
-            "react-icons": "^5.5.0"
+            "@mantine/core": "^8.3.4",
+            "react-icons": "^5.2.1"
           } as any
         },
         "title": "Adding Block Type Select Items",
@@ -483,7 +483,7 @@
             "Block Side Menu"
           ],
           "dependencies": {
-            "react-icons": "^5.5.0"
+            "react-icons": "^5.2.1"
           } as any
         },
         "title": "Adding Block Side Menu Buttons",
@@ -508,7 +508,7 @@
             "Block Side Menu"
           ],
           "dependencies": {
-            "react-icons": "^5.5.0"
+            "react-icons": "^5.2.1"
           } as any
         },
         "title": "Adding Drag Handle Menu Items",
@@ -534,7 +534,7 @@
             "Slash Menu"
           ],
           "dependencies": {
-            "react-icons": "^5.5.0"
+            "react-icons": "^5.2.1"
           } as any
         },
         "title": "Adding Slash Menu Items",
@@ -659,7 +659,7 @@
             "@uppy/status-bar": "^3.1.1",
             "@uppy/webcam": "^3.4.2",
             "@uppy/xhr-upload": "^3.4.0",
-            "react-icons": "^5.5.0"
+            "react-icons": "^5.2.1"
           } as any,
           "pro": true
         },
@@ -711,6 +711,8 @@
             "Appearance & Styling"
           ],
           "dependencies": {
+            "@emotion/react": "^11.11.4",
+            "@emotion/styled": "^11.11.5",
             "@mui/icons-material": "^5.16.1",
             "@mui/material": "^5.16.1"
           } as any,
@@ -1098,7 +1100,8 @@
           ],
           "dependencies": {
             "@blocknote/xl-docx-exporter": "latest",
-            "@blocknote/xl-multi-column": "latest"
+            "@blocknote/xl-multi-column": "latest",
+            "docx": "^9.5.1"
           } as any,
           "pro": true
         },
@@ -1146,7 +1149,7 @@
           ],
           "dependencies": {
             "@blocknote/xl-email-exporter": "latest",
-            "@react-email/render": "^2.0.4"
+            "@react-email/render": "^1.1.2"
           } as any,
           "pro": true
         },
@@ -1156,48 +1159,6 @@
           "slug": "interoperability"
         },
         "readme": "This example exports the current document (all blocks) as an HTML file for use in emails, and downloads it to your computer.\n\n**Try it out:** Edit the document and click \"Download email .html\" at the top to download the HTML file."
-      },
-      {
-        "projectSlug": "blocks-to-html-static-render",
-        "fullSlug": "interoperability/blocks-to-html-static-render",
-        "pathFromRoot": "examples/05-interoperability/09-blocks-to-html-static-render",
-        "config": {
-          "playground": true,
-          "docs": false,
-          "author": "matthewlipski",
-          "tags": [
-            "Basic",
-            "Blocks",
-            "Import/Export"
-          ]
-        },
-        "title": "Rendering HTML Converted From Blocks (Side by Side)",
-        "group": {
-          "pathFromRoot": "examples/05-interoperability",
-          "slug": "interoperability"
-        },
-        "readme": "This example exports the current document (all blocks) as HTML and renders it below the editor.\n\n**Try it out:** Edit the document to see the rendered static HTML!\n\n**Relevant Docs:**\n\n- [Converting Blocks to HTML](/docs/features/export/html)"
-      },
-      {
-        "projectSlug": "static-html-render",
-        "fullSlug": "interoperability/static-html-render",
-        "pathFromRoot": "examples/05-interoperability/10-static-html-render",
-        "config": {
-          "playground": true,
-          "docs": true,
-          "author": "matthewlipski",
-          "tags": [
-            "Basic",
-            "Blocks",
-            "Inline Content"
-          ]
-        },
-        "title": "Rendering HTML Converted From Blocks",
-        "group": {
-          "pathFromRoot": "examples/05-interoperability",
-          "slug": "interoperability"
-        },
-        "readme": "This example exports the current document (all blocks) as HTML and renders it.\n\n**Relevant Docs:**\n\n- [Converting Blocks to HTML](/docs/features/export/html)"
       }
     ]
   },
@@ -1221,8 +1182,8 @@
             "Slash Menu"
           ],
           "dependencies": {
-            "@mantine/core": "^8.3.11",
-            "react-icons": "^5.5.0"
+            "@mantine/core": "^8.3.4",
+            "react-icons": "^5.2.1"
           } as any
         },
         "title": "Alert Block",
@@ -1269,7 +1230,7 @@
             "Formatting Toolbar"
           ],
           "dependencies": {
-            "react-icons": "^5.5.0"
+            "react-icons": "^5.2.1"
           } as any
         },
         "title": "Font Style",
@@ -1295,8 +1256,8 @@
             "Slash Menu"
           ],
           "dependencies": {
-            "@mantine/core": "^8.3.11",
-            "react-icons": "^5.5.0"
+            "@mantine/core": "^8.3.4",
+            "react-icons": "^5.2.1"
           } as any,
           "pro": true
         },
@@ -1324,8 +1285,8 @@
             "Slash Menu"
           ],
           "dependencies": {
-            "@mantine/core": "^8.3.11",
-            "react-icons": "^5.5.0"
+            "@mantine/core": "^8.3.4",
+            "react-icons": "^5.2.1"
           } as any
         },
         "title": "Alert Block with Full UX",
@@ -1462,7 +1423,7 @@
           ],
           "dependencies": {
             "y-partykit": "^0.0.25",
-            "yjs": "^13.6.27"
+            "@y/y": "14.0.0-19"
           } as any
         },
         "title": "Collaborative Editing with PartyKit",
@@ -1491,7 +1452,7 @@
             "@liveblocks/react-blocknote": "3.7.1-tiptap3",
             "@liveblocks/react-tiptap": "3.7.1-tiptap3",
             "@liveblocks/react-ui": "3.7.1-tiptap3",
-            "yjs": "^13.6.27"
+            "@y/y": "14.0.0-19"
           } as any
         },
         "title": "Collaborative Editing with Liveblocks",
@@ -1561,7 +1522,7 @@
           ],
           "dependencies": {
             "@y-sweet/react": "^0.6.3",
-            "@mantine/core": "^8.3.11"
+            "@mantine/core": "^8.3.4"
           } as any
         },
         "title": "Comments & Threads",
@@ -1586,8 +1547,8 @@
           ],
           "dependencies": {
             "y-partykit": "^0.0.25",
-            "yjs": "^13.6.27",
-            "@mantine/core": "^8.3.11"
+            "@y/y": "14.0.0-19",
+            "@mantine/core": "^8.3.4"
           } as any
         },
         "title": "Threads Sidebar",
@@ -1612,7 +1573,7 @@
           ],
           "dependencies": {
             "y-partykit": "^0.0.25",
-            "yjs": "^13.6.27"
+            "@y/y": "14.0.0-19"
           } as any
         },
         "title": "Ghost Writer",
@@ -1637,7 +1598,7 @@
           ],
           "dependencies": {
             "y-partykit": "^0.0.25",
-            "yjs": "^13.6.27"
+            "@y/y": "14.0.0-19"
           } as any
         },
         "title": "Collaborative Editing with Forking",
@@ -1696,8 +1657,8 @@
           ],
           "dependencies": {
             "@blocknote/xl-ai": "latest",
-            "@mantine/core": "^8.3.11",
-            "ai": "^6.0.5"
+            "@mantine/core": "^8.3.4",
+            "ai": "^5.0.102"
           } as any
         },
         "title": "Rich Text editor AI integration",
@@ -1721,8 +1682,8 @@
           ],
           "dependencies": {
             "@blocknote/xl-ai": "latest",
-            "@mantine/core": "^8.3.11",
-            "ai": "^6.0.5"
+            "@mantine/core": "^8.3.4",
+            "ai": "^5.0.102"
           } as any
         },
         "title": "AI Playground",
@@ -1746,9 +1707,9 @@
           ],
           "dependencies": {
             "@blocknote/xl-ai": "latest",
-            "@mantine/core": "^8.3.11",
-            "ai": "^6.0.5",
-            "react-icons": "^5.5.0"
+            "@mantine/core": "^8.3.4",
+            "ai": "^5.0.102",
+            "react-icons": "^5.2.1"
           } as any
         },
         "title": "Adding AI Menu Items",
@@ -1772,10 +1733,10 @@
           ],
           "dependencies": {
             "@blocknote/xl-ai": "latest",
-            "@mantine/core": "^8.3.11",
-            "ai": "^6.0.5",
+            "@mantine/core": "^8.3.4",
+            "ai": "^5.0.102",
             "y-partykit": "^0.0.25",
-            "yjs": "^13.6.27"
+            "@y/y": "14.0.0-19"
           } as any
         },
         "title": "AI + Ghost Writer",
@@ -1799,10 +1760,10 @@
           ],
           "dependencies": {
             "@blocknote/xl-ai": "latest",
-            "@mantine/core": "^8.3.11",
-            "ai": "^6.0.5",
+            "@mantine/core": "^8.3.4",
+            "ai": "^5.0.102",
             "y-partykit": "^0.0.25",
-            "yjs": "^13.6.27"
+            "@y/y": "14.0.0-19"
           } as any
         },
         "title": "AI manual execution",
@@ -1825,10 +1786,10 @@
             "llm"
           ],
           "dependencies": {
-            "@ai-sdk/groq": "^3.0.2",
+            "@ai-sdk/groq": "^2.0.16",
             "@blocknote/xl-ai": "latest",
-            "@mantine/core": "^8.3.11",
-            "ai": "^6.0.5"
+            "@mantine/core": "^8.3.4",
+            "ai": "^5.0.102"
           } as any
         },
         "title": "AI Integration with ClientSideTransport",
@@ -1852,8 +1813,8 @@
           ],
           "dependencies": {
             "@blocknote/xl-ai": "latest",
-            "@mantine/core": "^8.3.11",
-            "ai": "^6.0.5"
+            "@mantine/core": "^8.3.4",
+            "ai": "^5.0.102"
           } as any
         },
         "title": "AI Integration with server LLM message persistence",
