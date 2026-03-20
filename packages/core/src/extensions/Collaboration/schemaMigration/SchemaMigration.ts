@@ -34,7 +34,7 @@ export const SchemaMigration = createExtension(
               // If none of the transactions result in a document change, we don't need to run the migration
               transactions.every((tr) => !tr.docChanged) ||
               // If the fragment is still empty, we can't run the migration (since it has not yet been applied to the Y.Doc)
-              !options.fragment.firstChild
+              options.fragment.length === 0
             ) {
               return undefined;
             }

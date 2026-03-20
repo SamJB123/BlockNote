@@ -1,7 +1,12 @@
 import { Command, Transaction } from "prosemirror-state";
-import type { YUndoExtension } from "../../extensions/Collaboration/YUndo.js";
 import type { HistoryExtension } from "../../extensions/History/History.js";
+import type { Extension } from "../BlockNoteExtension.js";
 import { BlockNoteEditor } from "../BlockNoteEditor.js";
+
+type OptionalYUndoExtension = Extension<any, "yUndo"> & {
+  undoCommand: Command;
+  redoCommand: Command;
+};
 
 export class StateManager {
   constructor(private editor: BlockNoteEditor<any, any, any>) {}
@@ -216,7 +221,7 @@ export class StateManager {
    */
   public undo(): boolean {
     // Purposefully not using the UndoPlugin to not import y-prosemirror when not needed
-    const undoPlugin = this.editor.getExtension<typeof YUndoExtension>("yUndo");
+    const undoPlugin = this.editor.getExtension<OptionalYUndoExtension>("yUndo");
     if (undoPlugin) {
       return this.exec(undoPlugin.undoCommand);
     }
@@ -234,7 +239,7 @@ export class StateManager {
    * Redo the last action.
    */
   public redo() {
-    const undoPlugin = this.editor.getExtension<typeof YUndoExtension>("yUndo");
+    const undoPlugin = this.editor.getExtension<OptionalYUndoExtension>("yUndo");
     if (undoPlugin) {
       return this.exec(undoPlugin.redoCommand);
     }

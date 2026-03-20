@@ -4,6 +4,10 @@ import {
   createExtension,
   ExtensionOptions,
 } from "../../editor/BlockNoteExtension.js";
+import { YSyncExtension } from "./YSync.js";
+import { YCursorExtension } from "./YCursorPlugin.js";
+import { YUndoExtension } from "./YUndo.js";
+import { ForkYDocExtension } from "./ForkYDoc.js";
 
 export type CollaborationOptions = {
   /**
@@ -36,56 +40,34 @@ export type CollaborationOptions = {
    * A note/document ID used for scoping cursor presence.
    */
   noteId?: string;
+  /**
+   * The attribution manager for tracking who made changes.
+   * Used for track changes / suggestion mode.
+   * Attribution data is mapped to BlockNote's existing insertion/deletion
+   * marks (from SuggestionMarks) by the sync plugin.
+   */
+  attributionManager?: Y.AbstractAttributionManager;
 };
 
 export const CollaborationExtension = createExtension(
-  ({ editor, options }: ExtensionOptions<CollaborationOptions>) => {
-    let binding: any = null;
-
+  ({ options }: ExtensionOptions<CollaborationOptions>) => {
     return {
       key: "collaboration",
-      mount() {
-        // Lazy import to avoid pulling in prosemirror-view at parse time
-        import("./BlockNoteYjsBinding.js").then(
-          ({ BlockNoteYjsBinding }) => {
-            const awareness =
-              options.provider &&
-              "awareness" in options.provider &&
-              typeof options.provider.awareness === "object"
-                ? (options.provider.awareness as Awareness)
-                : null;
-
-            if (awareness) {
-              awareness.setLocalStateField("user", options.user);
-            }
-
-            binding = new BlockNoteYjsBinding(
-              options.fragment,
-              editor,
-              awareness,
-              options.noteId || "default",
-              true,
-            );
-          },
-        );
-      },
-      unmount() {
-        if (binding) {
-          binding.destroy();
-          binding = null;
-        }
-      },
-      updateUser(user: { name: string; color: string }) {
-        const awareness =
-          options.provider &&
-          "awareness" in options.provider &&
-          typeof options.provider.awareness === "object"
-            ? (options.provider.awareness as Awareness)
-            : null;
-        if (awareness) {
-          awareness.setLocalStateField("user", user);
-        }
-      },
+      blockNoteExtensions: [
+        // Sync: uses @y/prosemirror's syncPlugin for incremental
+        // transaction-based sync with attribution support.
+        // Attribution data is mapped to BlockNote's existing
+        // insertion/deletion marks (SuggestionMarks).
+        YSyncExtension(options),
+        // Cursors: uses our BlockNoteYjsBinding-based cursor system
+        // since @y/prosemirror v2 hasn't implemented yCursorPlugin yet
+        YCursorExtension(options),
+        // Undo/Redo: uses @y/prosemirror's yUndoPlugin with Y.UndoManager
+        // for collaborative undo scoped to the local user
+        YUndoExtension(options),
+        // Fork/Merge: isolate edits from remote sync, then merge or discard
+        ForkYDocExtension(options),
+      ],
     } as const;
   },
 );

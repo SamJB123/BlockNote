@@ -10,10 +10,7 @@ import {
   blockToNode,
   docToBlocks,
 } from "../index.js";
-import {
-  getBlocksFromContent,
-  type BlockNoteBlock,
-} from "../extensions/Collaboration/BlockNoteYjsBinding.js";
+import { getBlocksFromContent } from "../extensions/Collaboration/BlockNoteYjsBinding.js";
 
 /**
  * Turn Prosemirror JSON to BlockNote style JSON
@@ -66,7 +63,7 @@ export function yXmlFragmentToBlocks<
   ISchema extends InlineContentSchema,
   SSchema extends StyleSchema,
 >(
-  editor: BlockNoteEditor<BSchema, ISchema, SSchema>,
+  _editor: BlockNoteEditor<BSchema, ISchema, SSchema>,
   fragment: Y.Type,
 ) {
   return getBlocksFromContent(fragment) as unknown as Block<

@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import * as Y from "@y/y";
+import { yUndoPluginKey } from "@y/prosemirror";
 
 import {
   getBlockInfo,
@@ -7,6 +8,24 @@ import {
 } from "../api/getBlockInfoFromPos.js";
 import { BlockNoteEditor } from "./BlockNoteEditor.js";
 import { BlocksChanged } from "../api/getBlocksChangedByTransaction.js";
+
+function setupTwoWaySync(doc1: Y.Doc, doc2: Y.Doc) {
+  const sync = (source: Y.Doc, target: Y.Doc) => {
+    const update = Y.encodeStateAsUpdate(source);
+    Y.applyUpdate(target, update);
+  };
+
+  sync(doc1, doc2);
+  sync(doc2, doc1);
+
+  doc1.on("update", (update: Uint8Array) => {
+    Y.applyUpdate(doc2, update);
+  });
+
+  doc2.on("update", (update: Uint8Array) => {
+    Y.applyUpdate(doc1, update);
+  });
+}
 
 /**
  * @vitest-environment jsdom
@@ -248,4 +267,138 @@ it("onBeforeChange", () => {
       },
     ]
   `);
+});
+
+it("tracks undo operations when using Y.js collaboration", () => {
+  const doc = new Y.Doc();
+  const fragment = doc.get("doc");
+  const editor = BlockNoteEditor.create({
+    collaboration: {
+      fragment,
+      user: { name: "Hello", color: "#FFFFFF" },
+    },
+  });
+
+  editor.mount(document.createElement("div"));
+  editor.replaceBlocks(editor.document, [
+    {
+      type: "paragraph",
+      content: [{ text: "Hello", styles: {}, type: "text" }],
+    },
+  ]);
+
+  const undoState = yUndoPluginKey.getState(editor.prosemirrorState);
+
+  expect(undoState?.undoManager?.undoStack.length).toBeGreaterThan(0);
+  expect(editor.undo()).toBe(true);
+});
+
+it("tracks undo operations for interactive text insertion when using Y.js collaboration", () => {
+  const doc = new Y.Doc();
+  const fragment = doc.get("doc");
+  const editor = BlockNoteEditor.create({
+    collaboration: {
+      fragment,
+      user: { name: "Hello", color: "#FFFFFF" },
+    },
+  });
+
+  editor.mount(document.createElement("div"));
+  editor.setTextCursorPosition(editor.document[0], "start");
+  editor.insertInlineContent("Hello");
+
+  const undoState = yUndoPluginKey.getState(editor.prosemirrorState);
+
+  expect(undoState?.undoManager?.scope[0]).toBe(fragment);
+  expect(undoState?.undoManager?.undoStack.length).toBeGreaterThan(0);
+  expect(editor.undo()).toBe(true);
+});
+
+it("tracks undo operations when collaboration uses a nested Y.js fragment", () => {
+  const doc = new Y.Doc();
+  const notes = doc.get("notes");
+  const fragment = new Y.Type();
+  notes.setAttr("note-1", fragment);
+
+  const editor = BlockNoteEditor.create({
+    collaboration: {
+      fragment,
+      user: { name: "Hello", color: "#FFFFFF" },
+    },
+  });
+
+  editor.mount(document.createElement("div"));
+  editor.setTextCursorPosition(editor.document[0], "start");
+  editor.insertInlineContent("Hello");
+
+  const undoState = yUndoPluginKey.getState(editor.prosemirrorState);
+
+  expect(undoState?.undoManager?.undoStack.length).toBeGreaterThan(0);
+  expect(editor.undo()).toBe(true);
+});
+
+it("undo from one user preserves remote edits to existing blocks from another user", async () => {
+  const ydocA = new Y.Doc();
+  const ydocB = new Y.Doc();
+  setupTwoWaySync(ydocA, ydocB);
+
+  const editorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: ydocA.get("doc"),
+      user: { name: "A", color: "#FFFFFF" },
+    },
+  });
+  const editorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: ydocB.get("doc"),
+      user: { name: "B", color: "#000000" },
+    },
+  });
+
+  editorA.mount(document.createElement("div"));
+  editorB.mount(document.createElement("div"));
+
+  editorA.replaceBlocks(editorA.document, [
+    { type: "paragraph", content: "1" },
+    { type: "paragraph", content: "2" },
+    { type: "paragraph", content: "3" },
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(editorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(editorB.prosemirrorState)?.undoManager?.clear();
+
+  const firstBlockId = editorA.document[0].id;
+  const secondBlockId = editorA.document[1].id;
+  const thirdBlockId = editorA.document[2].id;
+
+  editorA.updateBlock(firstBlockId, {
+    content: "A1",
+  });
+  editorA.updateBlock(thirdBlockId, {
+    content: "A3",
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  editorB.updateBlock(secondBlockId, {
+    content: "B2",
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  editorA.undo();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  const contentA = editorA.document.map((b) => JSON.stringify(b.content));
+  const contentB = editorB.document.map((b) => JSON.stringify(b.content));
+
+  expect(contentA).toEqual([
+    '[{"type":"text","text":"1","styles":{}}]',
+    '[{"type":"text","text":"B2","styles":{}}]',
+    '[{"type":"text","text":"3","styles":{}}]',
+  ]);
+  expect(contentB).toEqual([
+    '[{"type":"text","text":"1","styles":{}}]',
+    '[{"type":"text","text":"B2","styles":{}}]',
+    '[{"type":"text","text":"3","styles":{}}]',
+  ]);
 });

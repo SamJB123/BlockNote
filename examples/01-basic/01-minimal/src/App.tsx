@@ -1,143 +1,58 @@
-import "@blocknote/core/fonts/inter.css";
-import { BlockNoteView } from "@blocknote/mantine";
-import "@blocknote/mantine/style.css";
-import { useCreateBlockNote } from "@blocknote/react";
-import * as Y from "@y/y";
-import { Awareness } from "@y/protocols/awareness";
+import { useState } from "react";
+import { CollabDemo } from "./CollabDemo";
+import { ForkDemo } from "./ForkDemo";
+import { ConversionsDemo } from "./ConversionsDemo";
+import { AIDemo } from "./AIDemo";
 
-const doc = new Y.Doc();
-const provider = {
-  awareness: new Awareness(doc),
-};
-
-const doc2 = new Y.Doc();
-const provider2 = {
-  awareness: new Awareness(doc2),
-};
-
-const suggestingDoc = new Y.Doc({ isSuggestionDoc: true });
-const suggestingProvider = {
-  awareness: new Awareness(suggestingDoc),
-};
-const suggestingAttributionManager = Y.createAttributionManagerFromDiff(
-  doc,
-  suggestingDoc,
-  {
-    attrs: [Y.createAttributionItem("insert", ["nickthesick"])],
-  },
-);
-suggestingAttributionManager.suggestionMode = false;
-
-const suggestionModeDoc = new Y.Doc({ isSuggestionDoc: true });
-const suggestionModeProvider = {
-  awareness: new Awareness(suggestionModeDoc),
-};
-const suggestionModeAttributionManager = Y.createAttributionManagerFromDiff(
-  doc,
-  suggestionModeDoc,
-  { attrs: [Y.createAttributionItem("insert", ["nickthesick"])] },
-);
-suggestionModeAttributionManager.suggestionMode = true;
-
-// Function to sync two documents
-function syncDocs(sourceDoc: Y.Doc, targetDoc: Y.Doc) {
-  // Create update message from source
-  const update = Y.encodeStateAsUpdate(sourceDoc);
-
-  // Apply update to target
-  Y.applyUpdate(targetDoc, update);
-}
-
-// Set up two-way sync
-function setupTwoWaySync(doc1: Y.Doc, doc2: Y.Doc) {
-  // Sync initial states
-  syncDocs(doc1, doc2);
-  syncDocs(doc2, doc1);
-
-  // Set up observers for future changes
-  doc1.on("update", (update: Uint8Array) => {
-    Y.applyUpdate(doc2, update);
-  });
-
-  doc2.on("update", (update: Uint8Array) => {
-    Y.applyUpdate(doc1, update);
-  });
-}
-
-setupTwoWaySync(doc, doc2);
-
-setupTwoWaySync(suggestingDoc, suggestionModeDoc);
-
-function Editor({
-  fragment,
-  provider,
-  attributionManager,
-}: {
-  fragment: Y.XmlFragment;
-  provider: { awareness: Awareness };
-  attributionManager?: Y.AbstractAttributionManager;
-}) {
-  const editor = useCreateBlockNote({
-    collaboration: {
-      fragment,
-      provider,
-      user: {
-        name: "Hello",
-        color: "#FFFFFF",
-      },
-      attributionManager,
-    },
-  });
-
-  return <BlockNoteView editor={editor} />;
-}
+const TABS = [
+  { id: "collab", label: "Sync + Cursors + Undo + Comments", component: CollabDemo },
+  { id: "fork", label: "ForkYDoc", component: ForkDemo },
+  { id: "conversions", label: "Yjs Conversions", component: ConversionsDemo },
+  { id: "ai", label: "AI Extension", component: AIDemo },
+] as const;
 
 export default function App() {
-  // Renders the editor instance using a React component.
+  const [activeTab, setActiveTab] = useState<string>("collab");
+
+  const ActiveComponent =
+    TABS.find((t) => t.id === activeTab)?.component ?? CollabDemo;
+
   return (
-    <div>
-      <div
+    <div style={{ fontFamily: "system-ui, sans-serif" }}>
+      <nav
         style={{
           display: "flex",
-          flexDirection: "row",
-          gap: "10px",
-          margin: "10px",
+          gap: "0",
+          borderBottom: "2px solid #e2e8f0",
+          padding: "0 20px",
+          background: "#f8fafc",
         }}
       >
-        <div style={{ flex: 1 }}>
-          Client A
-          <Editor fragment={doc.getXmlFragment("doc")} provider={provider} />
-        </div>
-        <div style={{ flex: 1 }}>
-          Client B
-          <Editor fragment={doc2.getXmlFragment("doc")} provider={provider2} />
-        </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          gap: "10px",
-          margin: "10px",
-        }}
-      >
-        <div style={{ flex: 1 }}>
-          View Suggestions Mode
-          <Editor
-            fragment={suggestingDoc.getXmlFragment("doc")}
-            provider={suggestingProvider}
-            attributionManager={suggestingAttributionManager}
-          />
-        </div>
-        <div style={{ flex: 1 }}>
-          Suggestion Mode
-          <Editor
-            fragment={suggestionModeDoc.getXmlFragment("doc")}
-            provider={suggestionModeProvider}
-            attributionManager={suggestionModeAttributionManager}
-          />
-        </div>
-      </div>
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: "12px 20px",
+              border: "none",
+              borderBottom:
+                activeTab === tab.id
+                  ? "2px solid #3b82f6"
+                  : "2px solid transparent",
+              background: activeTab === tab.id ? "white" : "transparent",
+              color: activeTab === tab.id ? "#1e293b" : "#64748b",
+              fontWeight: activeTab === tab.id ? 600 : 400,
+              fontSize: "14px",
+              cursor: "pointer",
+              marginBottom: "-2px",
+              transition: "all 0.15s",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+      <ActiveComponent />
     </div>
   );
 }

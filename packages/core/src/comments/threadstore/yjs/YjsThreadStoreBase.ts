@@ -28,9 +28,9 @@ export abstract class YjsThreadStoreBase extends ThreadStore {
 
   public getThreads(): Map<string, ThreadData> {
     const threadMap = new Map<string, ThreadData>();
-    this.threadsYType.forEachAttr((yThread: any, id: string) => {
-      if (yThread instanceof Y.Type) {
-        threadMap.set(id, yTypeToThread(yThread));
+    this.threadsYType.forEachAttr((yThread, key) => {
+      if (typeof key === "string" && yThread instanceof Y.Type) {
+        threadMap.set(key, yTypeToThread(yThread));
       }
     });
     return threadMap;

@@ -11,8 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@y/protocols": "1.0.6-3",
-    "@y/y": "14.0.0-19",
+    "@y/protocols": "1.0.6-rc.1",
+    "@y/y": "14.0.0-rc.2",
     "@blocknote/ariakit": "latest",
     "@blocknote/core": "latest",
     "@blocknote/mantine": "latest",
@@ -21,6 +21,7 @@
     "@mantine/core": "^8.3.11",
     "@mantine/hooks": "^8.3.11",
     "@mantine/utils": "^6.0.22",
+    "@blocknote/xl-ai": "latest",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },

@@ -128,26 +128,26 @@ export class ServerBlockNoteEditor<
   /** YJS / BLOCKNOTE conversions */
 
   /**
-   * Turn a Y.XmlFragment collaborative doc into a BlockNote document (BlockNote style JSON of all blocks)
+   * Turn a Y.Type collaborative doc fragment into a BlockNote document (BlockNote style JSON of all blocks)
    * @returns BlockNote document (BlockNote style JSON of all blocks)
    */
-  public yXmlFragmentToBlocks(xmlFragment: Y.XmlFragment) {
+  public yXmlFragmentToBlocks(xmlFragment: Y.Type) {
     return yXmlFragmentToBlocksUtil(this.editor, xmlFragment);
   }
 
   /**
-   * Convert blocks to a Y.XmlFragment
+   * Convert blocks to a Y.Type fragment
    *
    * This can be used when importing existing content to Y.Doc for the first time,
    * note that this should not be used to rehydrate a Y.Doc from a database once
    * collaboration has begun as all history will be lost
    *
    * @param blocks the blocks to convert
-   * @returns Y.XmlFragment
+   * @returns Y.Type
    */
   public blocksToYXmlFragment(
     blocks: Block<BSchema, ISchema, SSchema>[],
-    xmlFragment?: Y.XmlFragment,
+    xmlFragment?: Y.Type,
   ) {
     return blocksToYXmlFragmentUtil(this.editor, blocks, xmlFragment);
   }

@@ -126,6 +126,7 @@
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",
     "uuid": "^8.3.2",
+    "@y/prosemirror": "file:../../../reference-material/y-prosemirror",
     "@y/protocols": "1.0.6-rc.1",
     "@y/y": "14.0.0-rc.2",
     "lib0": "1.0.0-rc.6"
