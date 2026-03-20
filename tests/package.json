@@ -7,9 +7,9 @@
     "lint": "eslint src --max-warnings 0",
     "playwright": "playwright test",
     "test": "vitest --run",
-    "test:updateSnaps": "docker run --rm -e RUN_IN_DOCKER=true --network host -v $(pwd)/..:/work/ -w /work/tests -it mcr.microsoft.com/playwright:v1.51.1-noble npx playwright test -u",
+    "test:updateSnaps": "node -e \"const{execSync}=require('child_process');const p=process.cwd().replace(/\\\\/g,'/');execSync(`docker run --rm -e RUN_IN_DOCKER=true --network host -v ${p}/..:/work/ -w /work/tests -it mcr.microsoft.com/playwright:v1.51.1-noble npx playwright test -u`,{stdio:'inherit'})\"",
     "test-ct": "playwright test -c playwright-ct.config.ts --headed",
-    "test-ct:updateSnaps": "docker run --rm  -e RUN_IN_DOCKER=true --network host -v $(pwd)/..:/work/ -w /work/tests -it mcr.microsoft.com/playwright:v1.51.1-noble npx playwright test -c playwright-ct.config.ts -u",
+    "test-ct:updateSnaps": "node -e \"const{execSync}=require('child_process');const p=process.cwd().replace(/\\\\/g,'/');execSync(`docker run --rm -e RUN_IN_DOCKER=true --network host -v ${p}/..:/work/ -w /work/tests -it mcr.microsoft.com/playwright:v1.51.1-noble npx playwright test -c playwright-ct.config.ts -u`,{stdio:'inherit'})\"",
     "clean": "rimraf dist"
   },
   "devDependencies": {

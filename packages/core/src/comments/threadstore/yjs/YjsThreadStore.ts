@@ -4,10 +4,10 @@ import { CommentBody, CommentData, ThreadData } from "../../types.js";
 import { ThreadStoreAuth } from "../ThreadStoreAuth.js";
 import { YjsThreadStoreBase } from "./YjsThreadStoreBase.js";
 import {
-  commentToYMap,
-  threadToYMap,
-  yMapToComment,
-  yMapToThread,
+  commentToYType,
+  threadToYType,
+  yTypeToComment,
+  yTypeToThread,
 } from "./yjsHelpers.js";
 
 /**
@@ -25,17 +25,17 @@ import {
 export class YjsThreadStore extends YjsThreadStoreBase {
   constructor(
     private readonly userId: string,
-    threadsYMap: Y.Map<any>,
+    threadsYType: Y.Type,
     auth: ThreadStoreAuth,
   ) {
-    super(threadsYMap, auth);
+    super(threadsYType, auth);
   }
 
   private transact = <T, R>(
     fn: (options: T) => R,
   ): ((options: T) => Promise<R>) => {
     return async (options: T) => {
-      return this.threadsYMap.doc!.transact(() => {
+      return this.threadsYType.doc!.transact(() => {
         return fn(options);
       });
     };
@@ -76,7 +76,7 @@ export class YjsThreadStore extends YjsThreadStoreBase {
         metadata: options.metadata,
       };
 
-      this.threadsYMap.set(thread.id, threadToYMap(thread));
+      this.threadsYType.setAttr(thread.id, threadToYType(thread));
 
       return thread;
     },
@@ -93,12 +93,12 @@ export class YjsThreadStore extends YjsThreadStoreBase {
       };
       threadId: string;
     }) => {
-      const yThread = this.threadsYMap.get(options.threadId);
+      const yThread = this.threadsYType.getAttr(options.threadId) as Y.Type;
       if (!yThread) {
         throw new Error("Thread not found");
       }
 
-      if (!this.auth.canAddComment(yMapToThread(yThread))) {
+      if (!this.auth.canAddComment(yTypeToThread(yThread))) {
         throw new Error("Not authorized");
       }
 
@@ -115,11 +115,10 @@ export class YjsThreadStore extends YjsThreadStoreBase {
         body: options.comment.body,
       };
 
-      (yThread.get("comments") as Y.Array<Y.Map<any>>).push([
-        commentToYMap(comment),
-      ]);
+      const commentsYType = yThread.getAttr("comments") as Y.Type;
+      commentsYType.push([commentToYType(comment)]);
 
-      yThread.set("updatedAt", new Date().getTime());
+      yThread.setAttr("updatedAt", new Date().getTime());
       return comment;
     },
   );
@@ -133,29 +132,30 @@ export class YjsThreadStore extends YjsThreadStoreBase {
       threadId: string;
       commentId: string;
     }) => {
-      const yThread = this.threadsYMap.get(options.threadId);
+      const yThread = this.threadsYType.getAttr(options.threadId) as Y.Type;
       if (!yThread) {
         throw new Error("Thread not found");
       }
 
-      const yCommentIndex = yArrayFindIndex(
-        yThread.get("comments"),
-        (comment) => comment.get("id") === options.commentId,
+      const commentsYType = yThread.getAttr("comments") as Y.Type;
+      const yCommentIndex = yTypeFindIndex(
+        commentsYType,
+        (comment) => comment.getAttr("id") === options.commentId,
       );
 
       if (yCommentIndex === -1) {
         throw new Error("Comment not found");
       }
 
-      const yComment = yThread.get("comments").get(yCommentIndex);
+      const yComment = commentsYType.get(yCommentIndex) as Y.Type;
 
-      if (!this.auth.canUpdateComment(yMapToComment(yComment))) {
+      if (!this.auth.canUpdateComment(yTypeToComment(yComment))) {
         throw new Error("Not authorized");
       }
 
-      yComment.set("body", options.comment.body);
-      yComment.set("updatedAt", new Date().getTime());
-      yComment.set("metadata", options.comment.metadata);
+      yComment.setAttr("body", options.comment.body);
+      yComment.setAttr("updatedAt", new Date().getTime());
+      yComment.setAttr("metadata", options.comment.metadata);
     },
   );
 
@@ -165,114 +165,118 @@ export class YjsThreadStore extends YjsThreadStoreBase {
       commentId: string;
       softDelete?: boolean;
     }) => {
-      const yThread = this.threadsYMap.get(options.threadId);
+      const yThread = this.threadsYType.getAttr(options.threadId) as Y.Type;
       if (!yThread) {
         throw new Error("Thread not found");
       }
 
-      const yCommentIndex = yArrayFindIndex(
-        yThread.get("comments"),
-        (comment) => comment.get("id") === options.commentId,
+      const commentsYType = yThread.getAttr("comments") as Y.Type;
+      const yCommentIndex = yTypeFindIndex(
+        commentsYType,
+        (comment) => comment.getAttr("id") === options.commentId,
       );
 
       if (yCommentIndex === -1) {
         throw new Error("Comment not found");
       }
 
-      const yComment = yThread.get("comments").get(yCommentIndex);
+      const yComment = commentsYType.get(yCommentIndex) as Y.Type;
 
-      if (!this.auth.canDeleteComment(yMapToComment(yComment))) {
+      if (!this.auth.canDeleteComment(yTypeToComment(yComment))) {
         throw new Error("Not authorized");
       }
 
-      if (yComment.get("deletedAt")) {
+      if (yComment.getAttr("deletedAt")) {
         throw new Error("Comment already deleted");
       }
 
       if (options.softDelete) {
-        yComment.set("deletedAt", new Date().getTime());
-        yComment.set("body", undefined);
+        yComment.setAttr("deletedAt", new Date().getTime());
+        yComment.setAttr("body", undefined);
       } else {
-        yThread.get("comments").delete(yCommentIndex);
+        commentsYType.delete(yCommentIndex, 1);
       }
 
       if (
-        (yThread.get("comments") as Y.Array<any>)
+        commentsYType
           .toArray()
-          .every((comment) => comment.get("deletedAt"))
+          .every((comment: any) =>
+            comment instanceof Y.Type ? comment.getAttr("deletedAt") : true
+          )
       ) {
         // all comments deleted
         if (options.softDelete) {
-          yThread.set("deletedAt", new Date().getTime());
+          yThread.setAttr("deletedAt", new Date().getTime());
         } else {
-          this.threadsYMap.delete(options.threadId);
+          this.threadsYType.deleteAttr(options.threadId);
         }
       }
 
-      yThread.set("updatedAt", new Date().getTime());
+      yThread.setAttr("updatedAt", new Date().getTime());
     },
   );
 
   public deleteThread = this.transact((options: { threadId: string }) => {
     if (
       !this.auth.canDeleteThread(
-        yMapToThread(this.threadsYMap.get(options.threadId)),
+        yTypeToThread(this.threadsYType.getAttr(options.threadId) as Y.Type),
       )
     ) {
       throw new Error("Not authorized");
     }
 
-    this.threadsYMap.delete(options.threadId);
+    this.threadsYType.deleteAttr(options.threadId);
   });
 
   public resolveThread = this.transact((options: { threadId: string }) => {
-    const yThread = this.threadsYMap.get(options.threadId);
+    const yThread = this.threadsYType.getAttr(options.threadId) as Y.Type;
     if (!yThread) {
       throw new Error("Thread not found");
     }
 
-    if (!this.auth.canResolveThread(yMapToThread(yThread))) {
+    if (!this.auth.canResolveThread(yTypeToThread(yThread))) {
       throw new Error("Not authorized");
     }
 
-    yThread.set("resolved", true);
-    yThread.set("resolvedUpdatedAt", new Date().getTime());
-    yThread.set("resolvedBy", this.userId);
+    yThread.setAttr("resolved", true);
+    yThread.setAttr("resolvedUpdatedAt", new Date().getTime());
+    yThread.setAttr("resolvedBy", this.userId);
   });
 
   public unresolveThread = this.transact((options: { threadId: string }) => {
-    const yThread = this.threadsYMap.get(options.threadId);
+    const yThread = this.threadsYType.getAttr(options.threadId) as Y.Type;
     if (!yThread) {
       throw new Error("Thread not found");
     }
 
-    if (!this.auth.canUnresolveThread(yMapToThread(yThread))) {
+    if (!this.auth.canUnresolveThread(yTypeToThread(yThread))) {
       throw new Error("Not authorized");
     }
 
-    yThread.set("resolved", false);
-    yThread.set("resolvedUpdatedAt", new Date().getTime());
+    yThread.setAttr("resolved", false);
+    yThread.setAttr("resolvedUpdatedAt", new Date().getTime());
   });
 
   public addReaction = this.transact(
     (options: { threadId: string; commentId: string; emoji: string }) => {
-      const yThread = this.threadsYMap.get(options.threadId);
+      const yThread = this.threadsYType.getAttr(options.threadId) as Y.Type;
       if (!yThread) {
         throw new Error("Thread not found");
       }
 
-      const yCommentIndex = yArrayFindIndex(
-        yThread.get("comments"),
-        (comment) => comment.get("id") === options.commentId,
+      const commentsYType = yThread.getAttr("comments") as Y.Type;
+      const yCommentIndex = yTypeFindIndex(
+        commentsYType,
+        (comment) => comment.getAttr("id") === options.commentId,
       );
 
       if (yCommentIndex === -1) {
         throw new Error("Comment not found");
       }
 
-      const yComment = yThread.get("comments").get(yCommentIndex);
+      const yComment = commentsYType.get(yCommentIndex) as Y.Type;
 
-      if (!this.auth.canAddReaction(yMapToComment(yComment), options.emoji)) {
+      if (!this.auth.canAddReaction(yTypeToComment(yComment), options.emoji)) {
         throw new Error("Not authorized");
       }
 
@@ -280,60 +284,62 @@ export class YjsThreadStore extends YjsThreadStoreBase {
 
       const key = `${this.userId}-${options.emoji}`;
 
-      const reactionsByUser = yComment.get("reactionsByUser");
+      const reactionsByUser = yComment.getAttr("reactionsByUser") as Y.Type;
 
-      if (reactionsByUser.has(key)) {
+      if (reactionsByUser.hasAttr(key)) {
         // already exists
         return;
       } else {
-        const reaction = new Y.Map();
-        reaction.set("emoji", options.emoji);
-        reaction.set("createdAt", date.getTime());
-        reaction.set("userId", this.userId);
-        reactionsByUser.set(key, reaction);
+        const reaction = new Y.Type();
+        reaction.setAttr("emoji", options.emoji);
+        reaction.setAttr("createdAt", date.getTime());
+        reaction.setAttr("userId", this.userId);
+        reactionsByUser.setAttr(key, reaction);
       }
     },
   );
 
   public deleteReaction = this.transact(
     (options: { threadId: string; commentId: string; emoji: string }) => {
-      const yThread = this.threadsYMap.get(options.threadId);
+      const yThread = this.threadsYType.getAttr(options.threadId) as Y.Type;
       if (!yThread) {
         throw new Error("Thread not found");
       }
 
-      const yCommentIndex = yArrayFindIndex(
-        yThread.get("comments"),
-        (comment) => comment.get("id") === options.commentId,
+      const commentsYType = yThread.getAttr("comments") as Y.Type;
+      const yCommentIndex = yTypeFindIndex(
+        commentsYType,
+        (comment) => comment.getAttr("id") === options.commentId,
       );
 
       if (yCommentIndex === -1) {
         throw new Error("Comment not found");
       }
 
-      const yComment = yThread.get("comments").get(yCommentIndex);
+      const yComment = commentsYType.get(yCommentIndex) as Y.Type;
 
       if (
-        !this.auth.canDeleteReaction(yMapToComment(yComment), options.emoji)
+        !this.auth.canDeleteReaction(yTypeToComment(yComment), options.emoji)
       ) {
         throw new Error("Not authorized");
       }
 
       const key = `${this.userId}-${options.emoji}`;
 
-      const reactionsByUser = yComment.get("reactionsByUser");
+      const reactionsByUser = yComment.getAttr("reactionsByUser") as Y.Type;
 
-      reactionsByUser.delete(key);
+      reactionsByUser.deleteAttr(key);
     },
   );
 }
 
-function yArrayFindIndex(
-  yArray: Y.Array<any>,
-  predicate: (item: any) => boolean,
+function yTypeFindIndex(
+  ytype: Y.Type,
+  predicate: (item: Y.Type) => boolean,
 ) {
-  for (let i = 0; i < yArray.length; i++) {
-    if (predicate(yArray.get(i))) {
+  for (let i = 0; i < ytype.length; i++) {
+    const child = ytype.get(i);
+    if (child instanceof Y.Type && predicate(child)) {
       return i;
     }
   }

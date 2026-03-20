@@ -21,10 +21,10 @@ export class RESTYjsThreadStore extends YjsThreadStoreBase {
   constructor(
     private readonly BASE_URL: string,
     private readonly headers: Record<string, string>,
-    threadsYMap: Y.Map<any>,
+    threadsYType: Y.Type,
     auth: ThreadStoreAuth,
   ) {
-    super(threadsYMap, auth);
+    super(threadsYType, auth);
   }
 
   private doRequest = async (path: string, method: string, body?: any) => {

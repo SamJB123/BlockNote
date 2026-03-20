@@ -130,7 +130,7 @@ it("onMount and onUnmount", async () => {
 
 it("sets an initial block id when using Y.js", async () => {
   const doc = new Y.Doc();
-  const fragment = doc.getXmlFragment("doc");
+  const fragment = doc.get("doc");
   let transactionCount = 0;
   const editor = BlockNoteEditor.create({
     collaboration: {

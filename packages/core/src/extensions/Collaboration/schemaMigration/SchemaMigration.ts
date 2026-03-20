@@ -14,7 +14,7 @@ import migrationRules from "./migrationRules/index.js";
 // and need to be fixed. These fixes are defined as `MigrationRule`s within the
 // `migrationRules` directory.
 export const SchemaMigration = createExtension(
-  ({ options }: ExtensionOptions<{ fragment: Y.XmlFragment }>) => {
+  ({ options }: ExtensionOptions<{ fragment: Y.Type }>) => {
     let migrationDone = false;
     const pluginKey = new PluginKey("schemaMigration");
 

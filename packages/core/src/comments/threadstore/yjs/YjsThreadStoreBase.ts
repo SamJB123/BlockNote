@@ -2,15 +2,15 @@ import * as Y from "@y/y";
 import { ThreadData } from "../../types.js";
 import { ThreadStore } from "../ThreadStore.js";
 import { ThreadStoreAuth } from "../ThreadStoreAuth.js";
-import { yMapToThread } from "./yjsHelpers.js";
+import { yTypeToThread } from "./yjsHelpers.js";
 
 /**
  * This is an abstract class that only implements the READ methods required by the ThreadStore interface.
- * The data is read from a Yjs Map.
+ * The data is read from a Y.Type used as a map (key-value via attrs).
  */
 export abstract class YjsThreadStoreBase extends ThreadStore {
   constructor(
-    protected readonly threadsYMap: Y.Map<any>,
+    protected readonly threadsYType: Y.Type,
     auth: ThreadStoreAuth,
   ) {
     super(auth);
@@ -18,19 +18,19 @@ export abstract class YjsThreadStoreBase extends ThreadStore {
 
   // TODO: async / reactive interface?
   public getThread(threadId: string) {
-    const yThread = this.threadsYMap.get(threadId);
+    const yThread = this.threadsYType.getAttr(threadId);
     if (!yThread) {
       throw new Error("Thread not found");
     }
-    const thread = yMapToThread(yThread);
+    const thread = yTypeToThread(yThread);
     return thread;
   }
 
   public getThreads(): Map<string, ThreadData> {
     const threadMap = new Map<string, ThreadData>();
-    this.threadsYMap.forEach((yThread, id) => {
-      if (yThread instanceof Y.Map) {
-        threadMap.set(id, yMapToThread(yThread));
+    this.threadsYType.forEachAttr((yThread: any, id: string) => {
+      if (yThread instanceof Y.Type) {
+        threadMap.set(id, yTypeToThread(yThread));
       }
     });
     return threadMap;
@@ -41,10 +41,10 @@ export abstract class YjsThreadStoreBase extends ThreadStore {
       cb(this.getThreads());
     };
 
-    this.threadsYMap.observeDeep(observer);
+    this.threadsYType.observeDeep(observer);
 
     return () => {
-      this.threadsYMap.unobserveDeep(observer);
+      this.threadsYType.unobserveDeep(observer);
     };
   }
 }

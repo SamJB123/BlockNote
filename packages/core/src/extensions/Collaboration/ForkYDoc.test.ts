@@ -9,7 +9,7 @@ import { ForkYDocExtension } from "./ForkYDoc.js";
  */
 it("can fork a document", async () => {
   const doc = new Y.Doc();
-  const fragment = doc.getXmlFragment("doc");
+  const fragment = doc.get("doc");
   const editor = BlockNoteEditor.create({
     collaboration: {
       fragment,
@@ -56,7 +56,7 @@ it("can fork a document", async () => {
 
 it("can merge a document", async () => {
   const doc = new Y.Doc();
-  const fragment = doc.getXmlFragment("doc");
+  const fragment = doc.get("doc");
   const editor = BlockNoteEditor.create({
     collaboration: {
       fragment,
@@ -110,9 +110,9 @@ it("can merge a document", async () => {
   );
 });
 
-it("can fork an keep the changes to the original document", async () => {
+it("can fork and keep the changes to the original document", async () => {
   const doc = new Y.Doc();
-  const fragment = doc.getXmlFragment("doc");
+  const fragment = doc.get("doc");
   const editor = BlockNoteEditor.create({
     collaboration: {
       fragment,

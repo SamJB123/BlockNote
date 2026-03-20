@@ -4,17 +4,12 @@ import {
   createExtension,
   ExtensionOptions,
 } from "../../editor/BlockNoteExtension.js";
-// import { ForkYDocExtension } from "./ForkYDoc.js";
-// import { SchemaMigration } from "./schemaMigration/SchemaMigration.js";
-// import { YCursorExtension } from "./YCursorPlugin.js";
-import { YSyncExtension } from "./YSync.js";
-// import { YUndoExtension } from "./YUndo.js";
 
 export type CollaborationOptions = {
   /**
-   * The Yjs XML fragment that's used for collaboration.
+   * The Yjs Y.Type that's used for collaboration.
    */
-  fragment: Y.XmlFragment;
+  fragment: Y.Type;
   /**
    * The user info for the current user that's shown to other collaborators.
    */
@@ -38,22 +33,59 @@ export type CollaborationOptions = {
    */
   showCursorLabels?: "always" | "activity";
   /**
-   * The attribution manager for the collaboration.
+   * A note/document ID used for scoping cursor presence.
    */
-  attributionManager?: Y.AbstractAttributionManager | Y.DiffAttributionManager;
+  noteId?: string;
 };
 
 export const CollaborationExtension = createExtension(
-  ({ options }: ExtensionOptions<CollaborationOptions>) => {
+  ({ editor, options }: ExtensionOptions<CollaborationOptions>) => {
+    let binding: any = null;
+
     return {
       key: "collaboration",
-      blockNoteExtensions: [
-        // ForkYDocExtension(options),
-        // YCursorExtension(options),
-        YSyncExtension(options),
-        // YUndoExtension(),
-        // SchemaMigration(options),
-      ],
+      mount() {
+        // Lazy import to avoid pulling in prosemirror-view at parse time
+        import("./BlockNoteYjsBinding.js").then(
+          ({ BlockNoteYjsBinding }) => {
+            const awareness =
+              options.provider &&
+              "awareness" in options.provider &&
+              typeof options.provider.awareness === "object"
+                ? (options.provider.awareness as Awareness)
+                : null;
+
+            if (awareness) {
+              awareness.setLocalStateField("user", options.user);
+            }
+
+            binding = new BlockNoteYjsBinding(
+              options.fragment,
+              editor,
+              awareness,
+              options.noteId || "default",
+              true,
+            );
+          },
+        );
+      },
+      unmount() {
+        if (binding) {
+          binding.destroy();
+          binding = null;
+        }
+      },
+      updateUser(user: { name: string; color: string }) {
+        const awareness =
+          options.provider &&
+          "awareness" in options.provider &&
+          typeof options.provider.awareness === "object"
+            ? (options.provider.awareness as Awareness)
+            : null;
+        if (awareness) {
+          awareness.setLocalStateField("user", user);
+        }
+      },
     } as const;
   },
 );

@@ -3,15 +3,14 @@ import * as Y from "@y/y";
 import { MigrationRule } from "./migrationRule.js";
 import { defaultProps } from "../../../../blocks/defaultProps.js";
 
-// Helper function to recursively traverse a `Y.XMLElement` and its descendant
-// elements.
+// Helper function to recursively traverse a Y.Type and its descendant elements.
 const traverseElement = (
-  rootElement: Y.XmlElement,
-  cb: (element: Y.XmlElement) => void,
+  rootElement: Y.Type,
+  cb: (element: Y.Type) => void,
 ) => {
   cb(rootElement);
-  rootElement.forEach((element) => {
-    if (element instanceof Y.XmlElement) {
+  rootElement.forEach((element: any) => {
+    if (element instanceof Y.Type) {
       traverseElement(element, cb);
     }
   });
@@ -32,15 +31,15 @@ export const moveColorAttributes: MigrationRule = (fragment, tr) => {
   > = new Map();
   // Finds all elements which still have `textColor` or `backgroundColor`
   // attributes in the current Yjs fragment.
-  fragment.forEach((element) => {
-    if (element instanceof Y.XmlElement) {
+  fragment.forEach((element: any) => {
+    if (element instanceof Y.Type) {
       traverseElement(element, (element) => {
         if (
-          element.nodeName === "blockContainer" &&
-          element.hasAttribute("id")
+          element.name === "blockContainer" &&
+          element.hasAttr("id")
         ) {
-          const textColor = element.getAttribute("textColor");
-          const backgroundColor = element.getAttribute("backgroundColor");
+          const textColor = element.getAttr("textColor") as string | undefined;
+          const backgroundColor = element.getAttr("backgroundColor") as string | undefined;
 
           const colors = {
             textColor:
@@ -54,7 +53,7 @@ export const moveColorAttributes: MigrationRule = (fragment, tr) => {
           };
 
           if (colors.textColor || colors.backgroundColor) {
-            targetBlockContainers.set(element.getAttribute("id")!, colors);
+            targetBlockContainers.set(element.getAttr("id") as string, colors);
           }
         }
       });
@@ -68,7 +67,7 @@ export const moveColorAttributes: MigrationRule = (fragment, tr) => {
   // Appends transactions to add the `textColor` and `backgroundColor`
   // attributes found on each `blockContainer` node to move them to the child
   // `blockContent` node.
-  tr.doc.descendants((node, pos) => {
+  tr.doc.descendants((node: any, pos: number) => {
     if (
       node.type.name === "blockContainer" &&
       targetBlockContainers.has(node.attrs.id)

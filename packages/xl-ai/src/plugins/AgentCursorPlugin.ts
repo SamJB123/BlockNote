@@ -1,6 +1,10 @@
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
-import { defaultSelectionBuilder } from "@y/prosemirror";
+// Inline selection builder (replaces @y/prosemirror's defaultSelectionBuilder)
+const defaultSelectionBuilder = (user: { color: string }) => ({
+  style: `background-color: ${user.color}40;`,
+  class: "bn-remote-selection",
+});
 
 type AgentCursorState = {
   selection: { anchor: number; head: number } | undefined;

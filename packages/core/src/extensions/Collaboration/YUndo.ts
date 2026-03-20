@@ -1,12 +1,4 @@
-import { redoCommand, undoCommand, yUndoPlugin } from "@y/prosemirror";
-import { createExtension } from "../../editor/BlockNoteExtension.js";
-
-export const YUndoExtension = createExtension(() => {
-  return {
-    key: "yUndo",
-    prosemirrorPlugins: [yUndoPlugin()],
-    dependsOn: ["yCursor", "ySync"],
-    undoCommand: undoCommand,
-    redoCommand: redoCommand,
-  } as const;
-});
+// YUndo is not yet implemented for Yjs v14.
+// @y/prosemirror v2 does not export yUndoPlugin.
+// This file is kept for backward compatibility but exports nothing.
+export {};

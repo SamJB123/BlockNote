@@ -1,8 +1,3 @@
-import {
-  prosemirrorToYDoc,
-  prosemirrorToYXmlFragment,
-  yXmlFragmentToProseMirrorRootNode,
-} from "@y/prosemirror";
 import * as Y from "@y/y";
 
 import {
@@ -15,6 +10,10 @@ import {
   blockToNode,
   docToBlocks,
 } from "../index.js";
+import {
+  getBlocksFromContent,
+  type BlockNoteBlock,
+} from "../extensions/Collaboration/BlockNoteYjsBinding.js";
 
 /**
  * Turn Prosemirror JSON to BlockNote style JSON
@@ -27,8 +26,6 @@ export function _prosemirrorJSONToBlocks<
   ISchema extends InlineContentSchema,
   SSchema extends StyleSchema,
 >(editor: BlockNoteEditor<BSchema, ISchema, SSchema>, json: any) {
-  // note: theoretically this should also be possible without creating prosemirror nodes,
-  // but this is definitely the easiest way
   const doc = editor.pmSchema.nodeFromJSON(json);
   return docToBlocks<BSchema, ISchema, SSchema>(doc);
 }
@@ -59,9 +56,9 @@ export function _blocksToProsemirrorNode<
 /** YJS / BLOCKNOTE conversions */
 
 /**
- * Turn a Y.XmlFragment collaborative doc into a BlockNote document (BlockNote style JSON of all blocks)
+ * Turn a Y.Type collaborative doc fragment into a BlockNote document
  * @param editor BlockNote editor
- * @param xmlFragment Y.XmlFragment
+ * @param fragment Y.Type fragment
  * @returns BlockNote document (BlockNote style JSON of all blocks)
  */
 export function yXmlFragmentToBlocks<
@@ -70,17 +67,17 @@ export function yXmlFragmentToBlocks<
   SSchema extends StyleSchema,
 >(
   editor: BlockNoteEditor<BSchema, ISchema, SSchema>,
-  xmlFragment: Y.XmlFragment,
+  fragment: Y.Type,
 ) {
-  const pmNode = yXmlFragmentToProseMirrorRootNode(
-    xmlFragment,
-    editor.pmSchema,
-  );
-  return docToBlocks<BSchema, ISchema, SSchema>(pmNode);
+  return getBlocksFromContent(fragment) as unknown as Block<
+    BSchema,
+    ISchema,
+    SSchema
+  >[];
 }
 
 /**
- * Convert blocks to a Y.XmlFragment
+ * Convert blocks to a Y.Type fragment.
  *
  * This can be used when importing existing content to Y.Doc for the first time,
  * note that this should not be used to rehydrate a Y.Doc from a database once
@@ -88,8 +85,8 @@ export function yXmlFragmentToBlocks<
  *
  * @param editor BlockNote editor
  * @param blocks the blocks to convert
- * @param xmlFragment XML fragment name
- * @returns Y.XmlFragment
+ * @param fragment optional existing Y.Type to populate
+ * @returns Y.Type
  */
 export function blocksToYXmlFragment<
   BSchema extends BlockSchema,
@@ -98,20 +95,74 @@ export function blocksToYXmlFragment<
 >(
   editor: BlockNoteEditor<BSchema, ISchema, SSchema>,
   blocks: Block<BSchema, ISchema, SSchema>[],
-  xmlFragment?: Y.XmlFragment,
-) {
-  return prosemirrorToYXmlFragment(
-    _blocksToProsemirrorNode(editor, blocks),
-    xmlFragment,
-  );
+  fragment?: Y.Type,
+): Y.Type {
+  const pmNode = _blocksToProsemirrorNode(editor, blocks);
+  const target = fragment ?? new Y.Type();
+
+  // Use lib0/delta to sync the PM node into the Y.Type
+  const { default: deltaModule } = await_delta();
+  const { default: schemaModule } = await_schema();
+  const $pmDelta = deltaModule.$delta({
+    name: schemaModule.$string,
+    attrs: schemaModule.$record(schemaModule.$string, schemaModule.$any),
+    text: true,
+    recursive: true,
+  });
+
+  function nodeToD(n: any): any {
+    const d = deltaModule.create(n.type.name, $pmDelta);
+    if (n.attrs) d.setAttrs(n.attrs);
+    n.content.forEach((child: any) => {
+      if (child.isText) {
+        const formatting: Record<string, any> = {};
+        child.marks.forEach((mark: any) => {
+          if (mark.attrs?.stringValue !== undefined) {
+            formatting[mark.type.name] = mark.attrs.stringValue;
+          } else if (mark.attrs && Object.keys(mark.attrs).length > 0) {
+            formatting[mark.type.name] = mark.attrs;
+          } else {
+            formatting[mark.type.name] = true;
+          }
+        });
+        d.insert(child.text || "", formatting);
+      } else {
+        const childFormatting: Record<string, any> = {};
+        child.marks.forEach((mark: any) => {
+          if (mark.attrs?.stringValue !== undefined) {
+            childFormatting[mark.type.name] = mark.attrs.stringValue;
+          } else if (mark.attrs && Object.keys(mark.attrs).length > 0) {
+            childFormatting[mark.type.name] = mark.attrs;
+          } else {
+            childFormatting[mark.type.name] = true;
+          }
+        });
+        d.insert([nodeToD(child)], childFormatting);
+      }
+    });
+    return d;
+  }
+
+  const pmDelta = nodeToD(pmNode);
+  target.applyDelta(pmDelta);
+
+  return target;
+}
+
+// Lazy imports for lib0/delta and lib0/schema to avoid top-level async
+function await_delta() {
+  return require("lib0/delta");
+}
+function await_schema() {
+  return require("lib0/schema");
 }
 
 /**
- * Turn a Y.Doc collaborative doc into a BlockNote document (BlockNote style JSON of all blocks)
+ * Turn a Y.Doc collaborative doc into a BlockNote document
  * @param editor BlockNote editor
  * @param ydoc Y.Doc
- * @param xmlFragment XML fragment name
- * @returns BlockNote document (BlockNote style JSON of all blocks)
+ * @param fragmentName Name of the fragment in the Y.Doc
+ * @returns BlockNote document
  */
 export function yDocToBlocks<
   BSchema extends BlockSchema,
@@ -120,19 +171,17 @@ export function yDocToBlocks<
 >(
   editor: BlockNoteEditor<BSchema, ISchema, SSchema>,
   ydoc: Y.Doc,
-  xmlFragment = "prosemirror",
+  fragmentName = "prosemirror",
 ) {
-  return yXmlFragmentToBlocks(editor, ydoc.getXmlFragment(xmlFragment));
+  return yXmlFragmentToBlocks(editor, ydoc.get(fragmentName));
 }
 
 /**
- * This can be used when importing existing content to Y.Doc for the first time,
- * note that this should not be used to rehydrate a Y.Doc from a database once
- * collaboration has begun as all history will be lost
+ * Convert blocks to a Y.Doc.
  *
  * @param editor BlockNote editor
  * @param blocks the blocks to convert
- * @param xmlFragment XML fragment name
+ * @param fragmentName Name of the fragment in the Y.Doc
  */
 export function blocksToYDoc<
   BSchema extends BlockSchema,
@@ -141,10 +190,10 @@ export function blocksToYDoc<
 >(
   editor: BlockNoteEditor<BSchema, ISchema, SSchema>,
   blocks: PartialBlock<BSchema, ISchema, SSchema>[],
-  xmlFragment = "prosemirror",
+  fragmentName = "prosemirror",
 ) {
-  return prosemirrorToYDoc(
-    _blocksToProsemirrorNode(editor, blocks),
-    xmlFragment,
-  );
+  const ydoc = new Y.Doc();
+  const fragment = ydoc.get(fragmentName);
+  blocksToYXmlFragment(editor, blocks as any, fragment);
+  return ydoc;
 }

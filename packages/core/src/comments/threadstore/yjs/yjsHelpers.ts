@@ -1,48 +1,48 @@
 import * as Y from "@y/y";
 import { CommentData, CommentReactionData, ThreadData } from "../../types.js";
 
-export function commentToYMap(comment: CommentData) {
-  const yMap = new Y.Map<any>();
-  yMap.set("id", comment.id);
-  yMap.set("userId", comment.userId);
-  yMap.set("createdAt", comment.createdAt.getTime());
-  yMap.set("updatedAt", comment.updatedAt.getTime());
+export function commentToYType(comment: CommentData) {
+  const yt = new Y.Type();
+  yt.setAttr("id", comment.id);
+  yt.setAttr("userId", comment.userId);
+  yt.setAttr("createdAt", comment.createdAt.getTime());
+  yt.setAttr("updatedAt", comment.updatedAt.getTime());
   if (comment.deletedAt) {
-    yMap.set("deletedAt", comment.deletedAt.getTime());
-    yMap.set("body", undefined);
+    yt.setAttr("deletedAt", comment.deletedAt.getTime());
+    yt.setAttr("body", undefined);
   } else {
-    yMap.set("body", comment.body);
+    yt.setAttr("body", comment.body);
   }
   if (comment.reactions.length > 0) {
-    throw new Error("Reactions should be empty in commentToYMap");
+    throw new Error("Reactions should be empty in commentToYType");
   }
 
   /**
-   * Reactions are stored in a map keyed by {userId-emoji},
+   * Reactions are stored in a Y.Type used as a map, keyed by {userId-emoji},
    * this makes it easy to add / remove reactions and in a way that works local-first.
-   * The cost is that "reading" the reactions is a bit more complex (see yMapToReactions).
+   * The cost is that "reading" the reactions is a bit more complex (see yTypeToReactions).
    */
-  yMap.set("reactionsByUser", new Y.Map());
-  yMap.set("metadata", comment.metadata);
+  yt.setAttr("reactionsByUser", new Y.Type());
+  yt.setAttr("metadata", comment.metadata);
 
-  return yMap;
+  return yt;
 }
 
-export function threadToYMap(thread: ThreadData) {
-  const yMap = new Y.Map();
-  yMap.set("id", thread.id);
-  yMap.set("createdAt", thread.createdAt.getTime());
-  yMap.set("updatedAt", thread.updatedAt.getTime());
-  const commentsArray = new Y.Array<Y.Map<any>>();
+export function threadToYType(thread: ThreadData) {
+  const yt = new Y.Type();
+  yt.setAttr("id", thread.id);
+  yt.setAttr("createdAt", thread.createdAt.getTime());
+  yt.setAttr("updatedAt", thread.updatedAt.getTime());
+  const commentsArray = new Y.Type();
 
-  commentsArray.push(thread.comments.map((comment) => commentToYMap(comment)));
+  commentsArray.push(thread.comments.map((comment) => commentToYType(comment)));
 
-  yMap.set("comments", commentsArray);
-  yMap.set("resolved", thread.resolved);
-  yMap.set("resolvedUpdatedAt", thread.resolvedUpdatedAt?.getTime());
-  yMap.set("resolvedBy", thread.resolvedBy);
-  yMap.set("metadata", thread.metadata);
-  return yMap;
+  yt.setAttr("comments", commentsArray);
+  yt.setAttr("resolved", thread.resolved);
+  yt.setAttr("resolvedUpdatedAt", thread.resolvedUpdatedAt?.getTime());
+  yt.setAttr("resolvedBy", thread.resolvedBy);
+  yt.setAttr("metadata", thread.metadata);
+  return yt;
 }
 
 type SingleUserCommentReactionData = {
@@ -51,20 +51,23 @@ type SingleUserCommentReactionData = {
   userId: string;
 };
 
-export function yMapToReaction(
-  yMap: Y.Map<any>,
+export function yTypeToReaction(
+  yt: Y.Type,
 ): SingleUserCommentReactionData {
   return {
-    emoji: yMap.get("emoji"),
-    createdAt: new Date(yMap.get("createdAt")),
-    userId: yMap.get("userId"),
+    emoji: yt.getAttr("emoji"),
+    createdAt: new Date(yt.getAttr("createdAt")),
+    userId: yt.getAttr("userId"),
   };
 }
 
-function yMapToReactions(yMap: Y.Map<any>): CommentReactionData[] {
-  const flatReactions = [...yMap.values()].map((reaction: Y.Map<any>) =>
-    yMapToReaction(reaction),
-  );
+function yTypeToReactions(yt: Y.Type): CommentReactionData[] {
+  const flatReactions: SingleUserCommentReactionData[] = [];
+  yt.forEachAttr((reaction: any) => {
+    if (reaction instanceof Y.Type) {
+      flatReactions.push(yTypeToReaction(reaction));
+    }
+  });
   // combine reactions by the same emoji
   return flatReactions.reduce(
     (acc: CommentReactionData[], reaction: SingleUserCommentReactionData) => {
@@ -90,34 +93,45 @@ function yMapToReactions(yMap: Y.Map<any>): CommentReactionData[] {
   );
 }
 
-export function yMapToComment(yMap: Y.Map<any>): CommentData {
+export function yTypeToComment(yt: Y.Type): CommentData {
   return {
     type: "comment",
-    id: yMap.get("id"),
-    userId: yMap.get("userId"),
-    createdAt: new Date(yMap.get("createdAt")),
-    updatedAt: new Date(yMap.get("updatedAt")),
-    deletedAt: yMap.get("deletedAt")
-      ? new Date(yMap.get("deletedAt"))
+    id: yt.getAttr("id"),
+    userId: yt.getAttr("userId"),
+    createdAt: new Date(yt.getAttr("createdAt")),
+    updatedAt: new Date(yt.getAttr("updatedAt")),
+    deletedAt: yt.getAttr("deletedAt")
+      ? new Date(yt.getAttr("deletedAt"))
       : undefined,
-    reactions: yMapToReactions(yMap.get("reactionsByUser")),
-    metadata: yMap.get("metadata"),
-    body: yMap.get("body"),
+    reactions: yTypeToReactions(yt.getAttr("reactionsByUser")),
+    metadata: yt.getAttr("metadata"),
+    body: yt.getAttr("body"),
   };
 }
 
-export function yMapToThread(yMap: Y.Map<any>): ThreadData {
+export function yTypeToThread(yt: Y.Type): ThreadData {
+  const commentsYType = yt.getAttr("comments") as Y.Type;
+  const comments = commentsYType
+    ? commentsYType.toArray().filter((c): c is Y.Type => c instanceof Y.Type).map(
+        (comment) => yTypeToComment(comment),
+      )
+    : [];
   return {
     type: "thread",
-    id: yMap.get("id"),
-    createdAt: new Date(yMap.get("createdAt")),
-    updatedAt: new Date(yMap.get("updatedAt")),
-    comments: ((yMap.get("comments") as Y.Array<Y.Map<any>>) || []).map(
-      (comment) => yMapToComment(comment),
-    ),
-    resolved: yMap.get("resolved"),
-    resolvedUpdatedAt: new Date(yMap.get("resolvedUpdatedAt")),
-    resolvedBy: yMap.get("resolvedBy"),
-    metadata: yMap.get("metadata"),
+    id: yt.getAttr("id"),
+    createdAt: new Date(yt.getAttr("createdAt")),
+    updatedAt: new Date(yt.getAttr("updatedAt")),
+    comments,
+    resolved: yt.getAttr("resolved"),
+    resolvedUpdatedAt: new Date(yt.getAttr("resolvedUpdatedAt")),
+    resolvedBy: yt.getAttr("resolvedBy"),
+    metadata: yt.getAttr("metadata"),
   };
 }
+
+// Keep backward-compatible aliases
+export const commentToYMap = commentToYType;
+export const threadToYMap = threadToYType;
+export const yMapToReaction = yTypeToReaction;
+export const yMapToComment = yTypeToComment;
+export const yMapToThread = yTypeToThread;

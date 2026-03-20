@@ -1,7 +1,8 @@
 import { Node } from "prosemirror-model";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
-import { getRelativeSelection, ySyncPluginKey } from "@y/prosemirror";
+// ySyncPluginKey and getRelativeSelection are not available in @y/prosemirror v2.
+// Comment thread positioning uses prosemirror positions as fallback.
 import {
   createExtension,
   createStore,
@@ -328,15 +329,12 @@ export const CommentsExtension = createExtension(
         if (threadStore.addThreadToDocument) {
           const view = editor.prosemirrorView!;
           const pmSelection = view.state.selection;
-          const ystate = ySyncPluginKey.getState(view.state);
           const selection = {
             prosemirror: {
               head: pmSelection.head,
               anchor: pmSelection.anchor,
             },
-            yjs: ystate
-              ? getRelativeSelection((ystate as any).binding, view.state)
-              : undefined,
+            yjs: undefined as any,
           };
           await threadStore.addThreadToDocument({
             threadId: thread.id,

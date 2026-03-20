@@ -290,7 +290,7 @@ describe("PositionStorage with remote editor", () => {
       // Create a mock editor
       const localEditor = BlockNoteEditor.create({
         collaboration: {
-          fragment: ydoc.getXmlFragment("doc"),
+          fragment: ydoc.get("doc"),
           user: { color: "#ff0000", name: "Local User" },
           provider: undefined,
         },
@@ -300,7 +300,7 @@ describe("PositionStorage with remote editor", () => {
 
       const remoteEditor = BlockNoteEditor.create({
         collaboration: {
-          fragment: remoteYdoc.getXmlFragment("doc"),
+          fragment: remoteYdoc.get("doc"),
           user: { color: "#ff0000", name: "Remote User" },
           provider: undefined,
         },
@@ -351,7 +351,7 @@ describe("PositionStorage with remote editor", () => {
       // Create a mock editor
       const localEditor = BlockNoteEditor.create({
         collaboration: {
-          fragment: ydoc.getXmlFragment("doc"),
+          fragment: ydoc.get("doc"),
           user: { color: "#ff0000", name: "Local User" },
           provider: undefined,
         },
@@ -361,7 +361,7 @@ describe("PositionStorage with remote editor", () => {
 
       const remoteEditor = BlockNoteEditor.create({
         collaboration: {
-          fragment: remoteYdoc.getXmlFragment("doc"),
+          fragment: remoteYdoc.get("doc"),
           user: { color: "#ff0000", name: "Remote User" },
           provider: undefined,
         },
@@ -416,7 +416,7 @@ describe("PositionStorage with remote editor", () => {
       // Create a mock editor
       const localEditor = BlockNoteEditor.create({
         collaboration: {
-          fragment: ydoc.getXmlFragment("doc"),
+          fragment: ydoc.get("doc"),
           user: { color: "#ff0000", name: "Local User" },
           provider: undefined,
         },
@@ -426,7 +426,7 @@ describe("PositionStorage with remote editor", () => {
 
       const remoteEditor = BlockNoteEditor.create({
         collaboration: {
-          fragment: remoteYdoc.getXmlFragment("doc"),
+          fragment: remoteYdoc.get("doc"),
           user: { color: "#ff0000", name: "Remote User" },
           provider: undefined,
         },
@@ -477,7 +477,7 @@ describe("PositionStorage with remote editor", () => {
       // Create a mock editor
       const localEditor = BlockNoteEditor.create({
         collaboration: {
-          fragment: ydoc.getXmlFragment("doc"),
+          fragment: ydoc.get("doc"),
           user: { color: "#ff0000", name: "Local User" },
           provider: undefined,
         },
@@ -487,7 +487,7 @@ describe("PositionStorage with remote editor", () => {
 
       const remoteEditor = BlockNoteEditor.create({
         collaboration: {
-          fragment: remoteYdoc.getXmlFragment("doc"),
+          fragment: remoteYdoc.get("doc"),
           user: { color: "#ff0000", name: "Remote User" },
           provider: undefined,
         },

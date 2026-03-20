@@ -13,18 +13,18 @@ vi.mock("uuid", () => ({
 describe("YjsThreadStore", () => {
   let store: YjsThreadStore;
   let doc: Y.Doc;
-  let threadsYMap: Y.Map<any>;
+  let threadsYType: Y.Type;
 
   beforeEach(() => {
     // Reset mocks and create fresh instances
     vi.clearAllMocks();
     mockUuidCounter = 0;
     doc = new Y.Doc();
-    threadsYMap = doc.getMap("threads");
+    threadsYType = doc.get("threads");
 
     store = new YjsThreadStore(
       "test-user",
-      threadsYMap,
+      threadsYType,
       new DefaultThreadStoreAuth("test-user", "editor"),
     );
   });
