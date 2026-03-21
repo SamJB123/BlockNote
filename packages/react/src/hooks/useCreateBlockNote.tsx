@@ -5,7 +5,7 @@ import {
   DefaultBlockSchema,
   DefaultInlineContentSchema,
   DefaultStyleSchema,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { DependencyList, useMemo } from "react";
 
 /**

@@ -1,4 +1,4 @@
-import { ySyncPluginKey } from "@y/prosemirror";
+import { ySyncPluginKey } from "@samjb/y-prosemirror";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { createExtension } from "../../editor/BlockNoteExtension.js";
 

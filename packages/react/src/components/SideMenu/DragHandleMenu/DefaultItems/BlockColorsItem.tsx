@@ -1,5 +1,5 @@
-import { blockHasType, editorHasBlockWithType } from "@blocknote/core";
-import { SideMenuExtension } from "@blocknote/core/extensions";
+import { blockHasType, editorHasBlockWithType } from "@samjb/blocknote-core";
+import { SideMenuExtension } from "@samjb/blocknote-core/extensions";
 import { ReactNode } from "react";
 
 import { useComponentsContext } from "../../../../editor/ComponentsContext.js";

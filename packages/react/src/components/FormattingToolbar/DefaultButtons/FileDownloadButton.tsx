@@ -3,7 +3,7 @@ import {
   BlockSchema,
   InlineContentSchema,
   StyleSchema,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { useCallback } from "react";
 import { RiDownload2Fill } from "react-icons/ri";
 

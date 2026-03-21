@@ -1,4 +1,4 @@
-import { BlockNoteEditor } from "@blocknote/core";
+import { BlockNoteEditor } from "@samjb/blocknote-core";
 import { FC, useCallback, useEffect, useState } from "react";
 import { useComponentsContext } from "../../editor/ComponentsContext.js";
 import { useEditorState } from "../../hooks/useEditorState.js";

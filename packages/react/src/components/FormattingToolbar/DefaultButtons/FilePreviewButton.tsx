@@ -4,7 +4,7 @@ import {
   editorHasBlockWithType,
   InlineContentSchema,
   StyleSchema,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { useCallback } from "react";
 import { RiImageAddFill } from "react-icons/ri";
 

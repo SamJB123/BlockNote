@@ -3,8 +3,8 @@ import {
   EMPTY_CELL_WIDTH,
   mergeCSSClasses,
   PartialTableContent,
-} from "@blocknote/core";
-import { TableHandlesExtension } from "@blocknote/core/extensions";
+} from "@samjb/blocknote-core";
+import { TableHandlesExtension } from "@samjb/blocknote-core/extensions";
 import {
   MouseEvent as ReactMouseEvent,
   ReactNode,

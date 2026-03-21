@@ -4,7 +4,7 @@ import {
   InlineContentSchema,
   StyleSchema,
   mergeCSSClasses,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import React, {
   HTMLAttributes,
   ReactNode,

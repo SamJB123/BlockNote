@@ -4,7 +4,7 @@ import {
   editorHasBlockWithType,
   InlineContentSchema,
   StyleSchema,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { useMemo } from "react";
 import type { IconType } from "react-icons";
 import {

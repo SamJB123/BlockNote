@@ -8,8 +8,8 @@ import {
   mapTableCell,
   StyleSchema,
   TableContent,
-} from "@blocknote/core";
-import { TableHandlesExtension } from "@blocknote/core/extensions";
+} from "@samjb/blocknote-core";
+import { TableHandlesExtension } from "@samjb/blocknote-core/extensions";
 import { useCallback } from "react";
 import { IconType } from "react-icons";
 import {

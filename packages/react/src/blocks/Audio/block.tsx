@@ -1,4 +1,4 @@
-import { createAudioBlockConfig, audioParse } from "@blocknote/core";
+import { createAudioBlockConfig, audioParse } from "@samjb/blocknote-core";
 
 import { RiVolumeUpFill } from "react-icons/ri";
 

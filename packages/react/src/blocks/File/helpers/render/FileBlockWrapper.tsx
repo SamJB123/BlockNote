@@ -1,4 +1,4 @@
-import { BlockConfig, FileBlockConfig } from "@blocknote/core";
+import { BlockConfig, FileBlockConfig } from "@samjb/blocknote-core";
 import { CSSProperties, ReactNode } from "react";
 
 import { useUploadLoading } from "../../../../hooks/useUploadLoading.js";

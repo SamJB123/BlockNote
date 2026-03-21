@@ -7,11 +7,11 @@ import {
   formatKeyboardShortcut,
   isTableCellSelection,
   StyleSchema,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import {
   FormattingToolbarExtension,
   ShowSelectionExtension,
-} from "@blocknote/core/extensions";
+} from "@samjb/blocknote-core/extensions";
 
 import { useComponentsContext } from "../../../editor/ComponentsContext.js";
 import { useBlockNoteEditor } from "../../../hooks/useBlockNoteEditor.js";

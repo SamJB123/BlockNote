@@ -3,7 +3,7 @@ import {
   createStore,
   Extension,
   ExtensionFactory,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { useStore } from "@tanstack/react-store";
 import { useBlockNoteEditor } from "./useBlockNoteEditor.js";
 

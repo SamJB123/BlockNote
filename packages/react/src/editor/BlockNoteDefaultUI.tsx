@@ -1,4 +1,4 @@
-import { CommentsExtension } from "@blocknote/core/comments";
+import { CommentsExtension } from "@samjb/blocknote-core/comments";
 import {
   FilePanelExtension,
   FormattingToolbarExtension,
@@ -6,7 +6,7 @@ import {
   SideMenuExtension,
   SuggestionMenu,
   TableHandlesExtension,
-} from "@blocknote/core/extensions";
+} from "@samjb/blocknote-core/extensions";
 import { lazy, Suspense } from "react";
 
 import { FilePanelController } from "../components/FilePanel/FilePanelController.js";

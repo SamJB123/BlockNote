@@ -1,5 +1,5 @@
-import { BlockNoteSchema, defaultStyleSpecs } from "@blocknote/core";
-import { createParagraphBlockSpec } from "@blocknote/core";
+import { BlockNoteSchema, defaultStyleSpecs } from "@samjb/blocknote-core";
+import { createParagraphBlockSpec } from "@samjb/blocknote-core";
 
 // this is quite convoluted. we'll clean this up when we make
 // it easier to extend / customize the default blocks

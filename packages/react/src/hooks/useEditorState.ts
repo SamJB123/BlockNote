@@ -1,4 +1,4 @@
-import type { BlockNoteEditor } from "@blocknote/core";
+import type { BlockNoteEditor } from "@samjb/blocknote-core";
 import deepEqual from "fast-deep-equal/es6/react";
 import { useDebugValue, useEffect, useLayoutEffect, useState } from "react";
 import { useSyncExternalStoreWithSelector } from "use-sync-external-store/shim/with-selector";

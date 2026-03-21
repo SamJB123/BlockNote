@@ -1,4 +1,4 @@
-import { CommentsExtension } from "@blocknote/core/comments";
+import { CommentsExtension } from "@samjb/blocknote-core/comments";
 import { flip, offset, shift } from "@floating-ui/react";
 import { ComponentProps, FC, useMemo } from "react";
 

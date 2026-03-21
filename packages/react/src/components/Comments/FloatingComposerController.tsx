@@ -5,8 +5,8 @@ import {
   DefaultStyleSchema,
   InlineContentSchema,
   StyleSchema,
-} from "@blocknote/core";
-import { CommentsExtension } from "@blocknote/core/comments";
+} from "@samjb/blocknote-core";
+import { CommentsExtension } from "@samjb/blocknote-core/comments";
 import { flip, offset, shift } from "@floating-ui/react";
 import { ComponentProps, FC, useMemo } from "react";
 

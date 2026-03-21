@@ -1,4 +1,4 @@
-import { BlockNoteEditor } from "@blocknote/core";
+import { BlockNoteEditor } from "@samjb/blocknote-core";
 import { useEffect, useState } from "react";
 
 // Hook which handles keyboard navigation of a grid suggestion menu. Arrow keys

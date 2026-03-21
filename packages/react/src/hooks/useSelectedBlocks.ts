@@ -3,7 +3,7 @@ import {
   BlockSchema,
   InlineContentSchema,
   StyleSchema,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { useEditorState } from "./useEditorState.js";
 
 export function useSelectedBlocks<

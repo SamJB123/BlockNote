@@ -1,4 +1,4 @@
-import { getNodeById } from "@blocknote/core";
+import { getNodeById } from "@samjb/blocknote-core";
 import { ReactNode, useMemo } from "react";
 
 import { useBlockNoteEditor } from "../../hooks/useBlockNoteEditor.js";

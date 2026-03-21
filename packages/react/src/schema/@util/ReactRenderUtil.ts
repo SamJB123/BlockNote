@@ -1,4 +1,4 @@
-import { BlockNoteEditor } from "@blocknote/core";
+import { BlockNoteEditor } from "@samjb/blocknote-core";
 import { flushSync } from "react-dom";
 import { Root, createRoot } from "react-dom/client";
 

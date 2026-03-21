@@ -1,6 +1,6 @@
-import { FormattingToolbarExtension } from "@blocknote/core/extensions";
+import { FormattingToolbarExtension } from "@samjb/blocknote-core/extensions";
 // Specifically using type here to avoid pulling in the comments extensions into the main bundle
-import type { CommentsExtension } from "@blocknote/core/comments";
+import type { CommentsExtension } from "@samjb/blocknote-core/comments";
 import { useCallback } from "react";
 import { RiChat3Line } from "react-icons/ri";
 

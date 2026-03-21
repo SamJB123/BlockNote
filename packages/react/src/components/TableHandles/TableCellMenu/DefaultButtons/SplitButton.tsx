@@ -1,5 +1,5 @@
-import { getColspan, getRowspan, isTableCell } from "@blocknote/core";
-import { TableHandlesExtension } from "@blocknote/core/extensions";
+import { getColspan, getRowspan, isTableCell } from "@samjb/blocknote-core";
+import { TableHandlesExtension } from "@samjb/blocknote-core/extensions";
 
 import { useComponentsContext } from "../../../../editor/ComponentsContext.js";
 import { useBlockNoteEditor } from "../../../../hooks/useBlockNoteEditor.js";

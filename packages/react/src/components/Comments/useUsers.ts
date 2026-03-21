@@ -1,5 +1,5 @@
-import { CommentsExtension } from "@blocknote/core/comments";
-import { User } from "@blocknote/core/comments";
+import { CommentsExtension } from "@samjb/blocknote-core/comments";
+import { User } from "@samjb/blocknote-core/comments";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 import { useExtension } from "../../hooks/useExtension.js";

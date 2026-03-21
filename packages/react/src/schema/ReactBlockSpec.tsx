@@ -14,7 +14,7 @@ import {
   mergeCSSClasses,
   Props,
   PropSchema,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import {
   NodeViewProps,
   NodeViewWrapper,

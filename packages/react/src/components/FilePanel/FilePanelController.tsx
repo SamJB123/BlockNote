@@ -1,4 +1,4 @@
-import { FilePanelExtension } from "@blocknote/core/extensions";
+import { FilePanelExtension } from "@samjb/blocknote-core/extensions";
 import { flip, offset } from "@floating-ui/react";
 import { FC, useMemo } from "react";
 

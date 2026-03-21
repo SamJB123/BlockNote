@@ -1,4 +1,4 @@
-import { BlockSchema, InlineContentSchema, StyleSchema } from "@blocknote/core";
+import { BlockSchema, InlineContentSchema, StyleSchema } from "@samjb/blocknote-core";
 import { FC, useCallback, useEffect } from "react";
 
 import { useBlockNoteContext } from "../../../editor/BlockNoteContext.js";

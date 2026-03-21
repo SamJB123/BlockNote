@@ -1,4 +1,4 @@
-import { yUndoPlugin, ySyncPluginKey, yUndoPluginKey } from "@y/prosemirror";
+import { yUndoPlugin, ySyncPluginKey, yUndoPluginKey } from "@samjb/y-prosemirror";
 import * as Y from "@y/y";
 import { Command } from "prosemirror-state";
 import {

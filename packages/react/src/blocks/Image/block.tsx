@@ -1,4 +1,4 @@
-import { createImageBlockConfig, imageParse } from "@blocknote/core";
+import { createImageBlockConfig, imageParse } from "@samjb/blocknote-core";
 import { RiImage2Fill } from "react-icons/ri";
 
 import {

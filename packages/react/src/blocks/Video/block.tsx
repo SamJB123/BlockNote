@@ -1,4 +1,4 @@
-import { createVideoBlockConfig, videoParse } from "@blocknote/core";
+import { createVideoBlockConfig, videoParse } from "@samjb/blocknote-core";
 import { RiVideoFill } from "react-icons/ri";
 
 import {

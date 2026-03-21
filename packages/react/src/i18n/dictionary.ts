@@ -1,4 +1,4 @@
-import { Dictionary } from "@blocknote/core";
+import { Dictionary } from "@samjb/blocknote-core";
 import { useBlockNoteContext } from "../editor/BlockNoteContext.js";
 
 export function useDictionary(): Dictionary {

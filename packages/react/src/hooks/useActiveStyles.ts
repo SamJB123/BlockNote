@@ -1,4 +1,4 @@
-import { BlockNoteEditor, Styles, StyleSchema } from "@blocknote/core";
+import { BlockNoteEditor, Styles, StyleSchema } from "@samjb/blocknote-core";
 
 import { useBlockNoteContext } from "../editor/BlockNoteContext.js";
 import { useEditorState } from "./useEditorState.js";

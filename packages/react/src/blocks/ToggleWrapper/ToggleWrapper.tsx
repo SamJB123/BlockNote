@@ -4,7 +4,7 @@ import {
   blockHasType,
   defaultToggledState,
   UnreachableCaseError,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { ReactNode, useReducer } from "react";
 
 import { useEditorState } from "../../hooks/useEditorState.js";

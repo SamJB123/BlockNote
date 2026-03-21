@@ -4,7 +4,7 @@ import {
   getPageBreakSlashMenuItems,
   InlineContentSchema,
   StyleSchema,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { DefaultReactSuggestionItem } from "../../components/SuggestionMenu/types.js";
 import { TbPageBreak } from "react-icons/tb";
 

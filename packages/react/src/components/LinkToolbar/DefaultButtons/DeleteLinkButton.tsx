@@ -1,4 +1,4 @@
-import { LinkToolbarExtension } from "@blocknote/core/extensions";
+import { LinkToolbarExtension } from "@samjb/blocknote-core/extensions";
 import { RiLinkUnlink } from "react-icons/ri";
 
 import { useComponentsContext } from "../../../editor/ComponentsContext.js";

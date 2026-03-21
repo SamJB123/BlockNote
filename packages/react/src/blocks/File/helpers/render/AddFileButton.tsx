@@ -1,5 +1,5 @@
-import { FileBlockConfig } from "@blocknote/core";
-import { FilePanelExtension } from "@blocknote/core/extensions";
+import { FileBlockConfig } from "@samjb/blocknote-core";
+import { FilePanelExtension } from "@samjb/blocknote-core/extensions";
 import { ReactNode, useCallback } from "react";
 import { RiFile2Line } from "react-icons/ri";
 

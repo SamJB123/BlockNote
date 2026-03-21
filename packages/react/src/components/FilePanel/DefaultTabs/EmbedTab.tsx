@@ -6,7 +6,7 @@ import {
   InlineContentSchema,
   StyleSchema,
   filenameFromURL,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { ChangeEvent, KeyboardEvent, useCallback, useState } from "react";
 
 import { useComponentsContext } from "../../../editor/ComponentsContext.js";

@@ -11,6 +11,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "noEmit": false,
+    "baseUrl": ".",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
@@ -19,7 +20,12 @@
     "declarationDir": "types",
     "composite": true,
     "skipLibCheck": true,
-    "emitDeclarationOnly": true
+    "emitDeclarationOnly": true,
+    "paths": {
+      "@samjb/blocknote-core": ["../core/src/index.ts"],
+      "@samjb/blocknote-core/comments": ["../core/src/comments/index.ts"],
+      "@samjb/blocknote-core/extensions": ["../core/src/extensions/index.ts"]
+    }
   },
   "include": ["src"],
   "references": [

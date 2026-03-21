@@ -1,9 +1,9 @@
-import { BlockSchema, InlineContentSchema, StyleSchema } from "@blocknote/core";
+import { BlockSchema, InlineContentSchema, StyleSchema } from "@samjb/blocknote-core";
 import {
   SuggestionMenu as SuggestionMenuExtension,
   SuggestionMenuOptions,
   filterSuggestionItems,
-} from "@blocknote/core/extensions";
+} from "@samjb/blocknote-core/extensions";
 import { autoPlacement, offset, shift, size } from "@floating-ui/react";
 import { FC, useEffect, useMemo } from "react";
 

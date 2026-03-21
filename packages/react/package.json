@@ -1,5 +1,5 @@
 {
-  "name": "@blocknote/react",
+  "name": "@samjb/blocknote-react",
   "homepage": "https://github.com/TypeCellOS/BlockNote",
   "private": false,
   "sideEffects": [
@@ -10,8 +10,11 @@
     "url": "git+https://github.com/TypeCellOS/BlockNote.git",
     "directory": "packages/react"
   },
+  "publishConfig": {
+    "access": "restricted"
+  },
   "license": "MPL-2.0",
-  "version": "0.47.2",
+  "version": "0.47.2-collab.0",
   "files": [
     "dist",
     "types",
@@ -58,7 +61,7 @@
     "clean": "rimraf dist && rimraf types"
   },
   "dependencies": {
-    "@blocknote/core": "0.47.2",
+    "@samjb/blocknote-core": "0.47.2-collab.0",
     "@emoji-mart/data": "^1.2.1",
     "@floating-ui/react": "^0.27.18",
     "@floating-ui/utils": "^0.2.10",

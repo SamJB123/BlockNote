@@ -5,7 +5,7 @@ import {
   DefaultStyleSchema,
   InlineContentSchema,
   StyleSchema,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { useCallback, useEffect, useState } from "react";
 
 import { useComponentsContext } from "../../../editor/ComponentsContext.js";

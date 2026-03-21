@@ -1,4 +1,4 @@
-import { TableHandlesExtension } from "@blocknote/core/extensions";
+import { TableHandlesExtension } from "@samjb/blocknote-core/extensions";
 
 import { useComponentsContext } from "../../../../editor/ComponentsContext.js";
 import { useDictionary } from "../../../../i18n/dictionary.js";

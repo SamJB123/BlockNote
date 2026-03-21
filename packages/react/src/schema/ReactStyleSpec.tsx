@@ -5,7 +5,7 @@ import {
   createInternalStyleSpec,
   getStyleParseRules,
   stylePropsToAttributes,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import {
   Mark,
   ReactMarkViewContext,

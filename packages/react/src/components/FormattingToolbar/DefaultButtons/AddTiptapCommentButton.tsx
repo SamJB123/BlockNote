@@ -1,4 +1,4 @@
-import { BlockSchema, InlineContentSchema, StyleSchema } from "@blocknote/core";
+import { BlockSchema, InlineContentSchema, StyleSchema } from "@samjb/blocknote-core";
 import { useCallback } from "react";
 import { RiChat3Line } from "react-icons/ri";
 

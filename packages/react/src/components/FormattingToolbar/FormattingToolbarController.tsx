@@ -5,8 +5,8 @@ import {
   DefaultProps,
   InlineContentSchema,
   StyleSchema,
-} from "@blocknote/core";
-import { FormattingToolbarExtension } from "@blocknote/core/extensions";
+} from "@samjb/blocknote-core";
+import { FormattingToolbarExtension } from "@samjb/blocknote-core/extensions";
 import { flip, offset, shift } from "@floating-ui/react";
 import { FC, useMemo } from "react";
 

@@ -3,8 +3,8 @@ import {
   BlockSchema,
   InlineContentSchema,
   StyleSchema,
-} from "@blocknote/core";
-import { getDefaultEmojiPickerItems } from "@blocknote/core/extensions";
+} from "@samjb/blocknote-core";
+import { getDefaultEmojiPickerItems } from "@samjb/blocknote-core/extensions";
 import { DefaultReactGridSuggestionItem } from "./types.js";
 
 export async function getDefaultReactEmojiPickerItems<

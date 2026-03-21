@@ -17,7 +17,7 @@ import {
   PropSchema,
   propsToAttributes,
   StyleSchema,
-} from "@blocknote/core";
+} from "@samjb/blocknote-core";
 import { Node } from "@tiptap/core";
 import {
   NodeViewProps,

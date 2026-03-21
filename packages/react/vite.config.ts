@@ -19,7 +19,7 @@ export default defineConfig((conf) => ({
         ? ({} as Record<string, string>)
         : ({
             // load live from sources with live reload working
-            "@blocknote/core": path.resolve(__dirname, "../core/src/"),
+            "@samjb/blocknote-core": path.resolve(__dirname, "../core/src/"),
           } as Record<string, string>),
   },
   build: {
@@ -51,7 +51,7 @@ export default defineConfig((conf) => ({
           source.startsWith("react-dom/") ||
           source.startsWith("prosemirror-") ||
           source.startsWith("@tiptap/") ||
-          source.startsWith("@blocknote/") ||
+          source.startsWith("@samjb/") ||
           source.startsWith("@shikijs/") ||
           source.startsWith("node:")
         );

@@ -1,4 +1,4 @@
-import { mergeCSSClasses } from "@blocknote/core";
+import { mergeCSSClasses } from "@samjb/blocknote-core";
 import { JSX, useMemo } from "react";
 import { useComponentsContext } from "../../editor/ComponentsContext.js";
 import { useDictionary } from "../../i18n/dictionary.js";

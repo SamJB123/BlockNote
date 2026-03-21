@@ -1,8 +1,8 @@
 "use client";
 
-import { mergeCSSClasses } from "@blocknote/core";
-import { CommentsExtension } from "@blocknote/core/comments";
-import type { CommentData, ThreadData } from "@blocknote/core/comments";
+import { mergeCSSClasses } from "@samjb/blocknote-core";
+import { CommentsExtension } from "@samjb/blocknote-core/comments";
+import type { CommentData, ThreadData } from "@samjb/blocknote-core/comments";
 import { MouseEvent, ReactNode, useCallback, useState } from "react";
 import {
   RiArrowGoBackFill,

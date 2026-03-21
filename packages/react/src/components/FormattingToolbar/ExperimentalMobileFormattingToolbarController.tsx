@@ -1,5 +1,5 @@
-import { BlockSchema, InlineContentSchema, StyleSchema } from "@blocknote/core";
-import { FormattingToolbarExtension } from "@blocknote/core/extensions";
+import { BlockSchema, InlineContentSchema, StyleSchema } from "@samjb/blocknote-core";
+import { FormattingToolbarExtension } from "@samjb/blocknote-core/extensions";
 import { FC, CSSProperties, useMemo, useRef, useState, useEffect } from "react";
 
 import { useBlockNoteEditor } from "../../hooks/useBlockNoteEditor.js";

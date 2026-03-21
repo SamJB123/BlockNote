@@ -1,6 +1,6 @@
-import { mergeCSSClasses } from "@blocknote/core";
-import { CommentsExtension } from "@blocknote/core/comments";
-import { CommentData } from "@blocknote/core/comments";
+import { mergeCSSClasses } from "@samjb/blocknote-core";
+import { CommentsExtension } from "@samjb/blocknote-core/comments";
+import { CommentData } from "@samjb/blocknote-core/comments";
 import { useState } from "react";
 
 import { useDictionary } from "../../i18n/dictionary.js";

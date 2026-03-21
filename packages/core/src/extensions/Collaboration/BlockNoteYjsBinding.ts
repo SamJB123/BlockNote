@@ -1,20 +1,20 @@
 /**
  * BlockNote ↔ Yjs v14 Binding
  *
- * Combines @y/prosemirror's syncPlugin (for incremental bidirectional sync
+ * Combines @samjb/y-prosemirror's syncPlugin (for incremental bidirectional sync
  * with attribution support) with custom cursor rendering via Awareness.
  *
  * Architecture:
- * - Sync: delegated to @y/prosemirror's syncPlugin which uses trToDelta
+ * - Sync: delegated to @samjb/y-prosemirror's syncPlugin which uses trToDelta
  *   for efficient incremental PM→Yjs sync, and deltaToPSteps for Yjs→PM.
  * - Cursors: custom ProseMirror decorations using Yjs v14 RelativePosition API.
- * - @y/prosemirror handles: sync, attribution, pause/resume, initialization.
+ * - @samjb/y-prosemirror handles: sync, attribution, pause/resume, initialization.
  * - This binding handles: cursor rendering, awareness, lifecycle management.
  */
 
 import * as Y from "@y/y";
 import type { Awareness } from "@y/protocols/awareness";
-import { syncPlugin, ySyncPluginKey } from "@y/prosemirror";
+import { syncPlugin, ySyncPluginKey } from "@samjb/y-prosemirror";
 import { TextOp } from "lib0/delta";
 import { Decoration, DecorationSet } from "prosemirror-view";
 import { Plugin, PluginKey } from "prosemirror-state";
@@ -676,7 +676,7 @@ export class BlockNoteYjsBinding {
 
     const tiptapEditor = editor._tiptapEditor;
     if (tiptapEditor) {
-      // Register syncPlugin from @y/prosemirror for bidirectional sync.
+      // Register syncPlugin from @samjb/y-prosemirror for bidirectional sync.
       // This handles: initialization, incremental PM→Yjs via trToDelta,
       // Yjs→PM via deltaToPSteps, attribution, pause/resume.
       const sync = syncPlugin(yContent, {

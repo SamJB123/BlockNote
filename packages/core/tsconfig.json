@@ -11,6 +11,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "noEmit": false,
+    "baseUrl": ".",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
@@ -20,7 +21,10 @@
     "emitDeclarationOnly": true,
     "composite": true,
     "skipLibCheck": true,
-    "noErrorTruncation": true
+    "noErrorTruncation": true,
+    "paths": {
+      "@samjb/y-prosemirror": ["../../../reference-material/y-prosemirror"]
+    }
   },
   "include": ["src"]
 }

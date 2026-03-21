@@ -3,8 +3,8 @@ import {
   BlockSchema,
   InlineContentSchema,
   StyleSchema,
-} from "@blocknote/core";
-import { getDefaultSlashMenuItems } from "@blocknote/core/extensions";
+} from "@samjb/blocknote-core";
+import { getDefaultSlashMenuItems } from "@samjb/blocknote-core/extensions";
 import {
   RiCodeBlock,
   RiEmotionFill,

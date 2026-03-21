@@ -2,7 +2,7 @@ import {
   DEFAULT_LINK_PROTOCOL,
   LinkToolbarExtension,
   VALID_LINK_PROTOCOLS,
-} from "@blocknote/core/extensions";
+} from "@samjb/blocknote-core/extensions";
 import {
   ChangeEvent,
   KeyboardEvent,

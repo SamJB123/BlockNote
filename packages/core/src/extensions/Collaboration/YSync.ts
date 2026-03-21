@@ -1,4 +1,4 @@
-import { syncPlugin } from "@y/prosemirror";
+import { syncPlugin } from "@samjb/y-prosemirror";
 import {
   ExtensionOptions,
   createExtension,

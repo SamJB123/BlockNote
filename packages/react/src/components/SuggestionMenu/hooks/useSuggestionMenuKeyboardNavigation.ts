@@ -1,4 +1,4 @@
-import { BlockNoteEditor } from "@blocknote/core";
+import { BlockNoteEditor } from "@samjb/blocknote-core";
 import { useEffect } from "react";
 import { useSuggestionMenuKeyboardHandler } from "./useSuggestionMenuKeyboardHandler.js";
 

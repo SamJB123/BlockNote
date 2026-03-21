@@ -1,4 +1,4 @@
-import { FileBlockConfig } from "@blocknote/core";
+import { FileBlockConfig } from "@samjb/blocknote-core";
 import { RiFile2Line } from "react-icons/ri";
 
 import { ReactCustomBlockRenderProps } from "../../../../schema/ReactBlockSpec.js";

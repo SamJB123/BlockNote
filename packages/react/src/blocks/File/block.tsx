@@ -1,4 +1,4 @@
-import { createFileBlockConfig, fileParse } from "@blocknote/core";
+import { createFileBlockConfig, fileParse } from "@samjb/blocknote-core";
 
 import { createReactBlockSpec } from "../../schema/ReactBlockSpec.js";
 import { FileBlockWrapper } from "./helpers/render/FileBlockWrapper.js";

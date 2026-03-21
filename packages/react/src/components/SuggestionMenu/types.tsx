@@ -1,4 +1,4 @@
-import { DefaultSuggestionItem } from "@blocknote/core/extensions";
+import { DefaultSuggestionItem } from "@samjb/blocknote-core/extensions";
 import { JSX } from "react";
 
 /**

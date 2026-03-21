@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 import * as Y from "@y/y";
-import { ySyncPluginKey, yUndoPluginKey } from "@y/prosemirror";
+import { ySyncPluginKey, yUndoPluginKey } from "@samjb/y-prosemirror";
 import {
   CommentsExtension,
   DefaultThreadStoreAuth,

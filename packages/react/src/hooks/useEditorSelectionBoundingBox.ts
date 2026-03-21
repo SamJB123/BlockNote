@@ -1,4 +1,4 @@
-import type { BlockNoteEditor } from "@blocknote/core";
+import type { BlockNoteEditor } from "@samjb/blocknote-core";
 import { useEditorState } from "./useEditorState.js";
 
 export function useEditorSelectionBoundingBox(

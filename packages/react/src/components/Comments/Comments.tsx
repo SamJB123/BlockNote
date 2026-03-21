@@ -1,4 +1,4 @@
-import { ThreadData } from "@blocknote/core/comments";
+import { ThreadData } from "@samjb/blocknote-core/comments";
 
 import { useComponentsContext } from "../../editor/ComponentsContext.js";
 import { useDictionary } from "../../i18n/dictionary.js";
