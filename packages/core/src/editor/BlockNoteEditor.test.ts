@@ -1,6 +1,11 @@
 import { expect, it } from "vitest";
 import * as Y from "@y/y";
 import { yUndoPluginKey } from "@y/prosemirror";
+import {
+  CommentsExtension,
+  DefaultThreadStoreAuth,
+  YjsThreadStore,
+} from "../comments/index.js";
 
 import {
   getBlockInfo,
@@ -26,6 +31,24 @@ function setupTwoWaySync(doc1: Y.Doc, doc2: Y.Doc) {
     Y.applyUpdate(doc1, update);
   });
 }
+
+const createSuggestionAttrs = (prevDoc: Y.Doc, nextDoc: Y.Doc) =>
+  Y.createContentMapFromContentIds(
+    Y.createContentIdsFromDocDiff(prevDoc, nextDoc),
+    [Y.createContentAttribute("insert", ["user-a"])],
+  );
+
+const getTextNodesWithMarks = (editor: BlockNoteEditor<any, any, any>) => {
+  const nodes: Array<{ text: string; marks: string[] }> = [];
+  editor.prosemirrorState.doc.descendants((node) => {
+    if (!node.isText) return;
+    nodes.push({
+      text: node.text || "",
+      marks: node.marks.map((mark) => `${mark.type.name}:${JSON.stringify(mark.attrs)}`),
+    });
+  });
+  return nodes;
+};
 
 /**
  * @vitest-environment jsdom
@@ -401,4 +424,892 @@ it("undo from one user preserves remote edits to existing blocks from another us
     '[{"type":"text","text":"B2","styles":{}}]',
     '[{"type":"text","text":"3","styles":{}}]',
   ]);
+});
+
+it("undo preserves the full deletion when typing into the final block with a synced peer", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+
+  mainEditorA.replaceBlocks(mainEditorA.document, [
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(mainEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(mainEditorB.prosemirrorState)?.undoManager?.clear();
+
+  const typeIntoBlock = async (
+    editor: BlockNoteEditor<any, any, any>,
+    blockIndex: number,
+    text: string,
+  ) => {
+    editor.setTextCursorPosition(editor.document[blockIndex], "start");
+    for (const ch of text) {
+      editor.insertInlineContent(ch);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager?.stopCapturing();
+  };
+
+  await typeIntoBlock(mainEditorA, 0, "asdfasdfasdfadsfa");
+  await typeIntoBlock(mainEditorB, 1, "123123123123");
+  await typeIntoBlock(mainEditorA, 2, "asdfasdfasdf");
+  await typeIntoBlock(mainEditorB, 3, "123123123123");
+  await typeIntoBlock(mainEditorA, 4, "asdfadsdfasdf");
+
+  mainEditorA.undo();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(getTextNodesWithMarks(mainEditorA)).toEqual([
+    { text: "asdfasdfasdfadsfa", marks: [] },
+    { text: "123123123123", marks: [] },
+    { text: "asdfasdfasdf", marks: [] },
+    { text: "123123123123", marks: [] },
+  ]);
+  expect(getTextNodesWithMarks(mainEditorB)).toEqual([
+    { text: "asdfasdfasdfadsfa", marks: [] },
+    { text: "123123123123", marks: [] },
+    { text: "asdfasdfasdf", marks: [] },
+    { text: "123123123123", marks: [] },
+  ]);
+});
+
+it("captures the first typed character when undoing the final block locally", async () => {
+  const doc = new Y.Doc();
+
+  const editor = BlockNoteEditor.create({
+    collaboration: {
+      fragment: doc.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+
+  editor.mount(document.createElement("div"));
+  editor.replaceBlocks(editor.document, [
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager?.clear();
+
+  editor.setTextCursorPosition(editor.document[4], "start");
+  const undoStackSnapshots: number[] = [];
+  for (const ch of "asdfadsdfasdf") {
+    editor.insertInlineContent(ch);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    undoStackSnapshots.push(
+      yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager?.undoStack.length ?? -1,
+    );
+  }
+  yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager?.stopCapturing();
+
+  const undoStackBeforeUndo =
+    yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager?.undoStack.length;
+  editor.undo();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(undoStackSnapshots[0]).toBe(1);
+  expect(undoStackBeforeUndo).toBe(1);
+  expect(getTextNodesWithMarks(editor)).toEqual([]);
+});
+
+it("diagnoses suggestion doc state after undo", async () => {
+  const mainDoc = new Y.Doc();
+  const suggestionDoc = new Y.Doc({ isSuggestionDoc: true });
+  const attributionManager = Y.createAttributionManagerFromDiff(
+    mainDoc,
+    suggestionDoc,
+    {
+      attrs: createSuggestionAttrs(mainDoc, suggestionDoc),
+    },
+  );
+  attributionManager.suggestionMode = true;
+
+  const mainEditor = BlockNoteEditor.create({
+    collaboration: {
+      fragment: mainDoc.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const suggestionEditor = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDoc.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager,
+    },
+  });
+
+  mainEditor.mount(document.createElement("div"));
+  suggestionEditor.mount(document.createElement("div"));
+
+  mainEditor.replaceBlocks(mainEditor.document, [
+    { type: "paragraph", content: "ASDASDASDASDASD" },
+    { type: "paragraph", content: "123123123123123123" },
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(mainEditor.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditor.prosemirrorState)?.undoManager?.clear();
+
+  const firstBlockId = mainEditor.document[0].id;
+  mainEditor.updateBlock(firstBlockId, {
+    content: "ASDASDASDASDASD\nA",
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  mainEditor.undo();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  // eslint-disable-next-line no-console
+  console.log("suggestion-diagnose", {
+    mainBlocks: mainEditor.document.map((b) => JSON.stringify(b.content)),
+    suggestionBlocks: suggestionEditor.document.map((b) =>
+      JSON.stringify(b.content),
+    ),
+    suggestionFragment: suggestionDoc.get("doc").toJSON(),
+  });
+});
+
+it("diagnoses cross-client suggestion docs after undo", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+  const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+  const attributionManagerA = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocA,
+    { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+  );
+  const attributionManagerB = Y.createAttributionManagerFromDiff(
+    docB,
+    suggestionDocB,
+    { attrs: createSuggestionAttrs(docB, suggestionDocB) },
+  );
+  attributionManagerA.suggestionMode = true;
+  attributionManagerB.suggestionMode = true;
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+  });
+  const suggestionEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocA.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager: attributionManagerA,
+    },
+  });
+  const suggestionEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocB.get("doc"),
+      user: { name: "B", color: "#000" },
+      attributionManager: attributionManagerB,
+    },
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+  suggestionEditorA.mount(document.createElement("div"));
+  suggestionEditorB.mount(document.createElement("div"));
+
+  mainEditorA.replaceBlocks(mainEditorA.document, [
+    { type: "paragraph", content: "asdfasdfasdfadsfa" },
+    { type: "paragraph", content: "123123123123" },
+    { type: "paragraph", content: "asdfasdfasdf" },
+    { type: "paragraph", content: "123123123123" },
+    { type: "paragraph", content: "asdfadsdfasdf" },
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(mainEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(mainEditorB.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorB.prosemirrorState)?.undoManager?.clear();
+
+  const lastBlockIdA = mainEditorA.document[4].id;
+  mainEditorA.updateBlock(lastBlockIdA, {
+    content: "ASDASDASDASDASD",
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  mainEditorB.updateBlock(mainEditorB.document[1].id, {
+    content: "123123123123123123",
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  mainEditorA.undo();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  // eslint-disable-next-line no-console
+  console.log("cross-client-suggestion-diagnose", {
+    mainA: mainEditorA.document.map((b) => JSON.stringify(b.content)),
+    mainB: mainEditorB.document.map((b) => JSON.stringify(b.content)),
+    sugA: suggestionEditorA.document.map((b) => JSON.stringify(b.content)),
+    sugB: suggestionEditorB.document.map((b) => JSON.stringify(b.content)),
+    sugAPm: getTextNodesWithMarks(suggestionEditorA),
+    sugBPm: getTextNodesWithMarks(suggestionEditorB),
+    suggestionDocA: suggestionDocA.get("doc").toJSON(),
+    suggestionDocB: suggestionDocB.get("doc").toJSON(),
+  });
+});
+
+it("undo removes the full final line in suggestion-mode collaboration views", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+  const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+  const attributionManagerA = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocA,
+    { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+  );
+  const attributionManagerB = Y.createAttributionManagerFromDiff(
+    docB,
+    suggestionDocB,
+    { attrs: createSuggestionAttrs(docB, suggestionDocB) },
+  );
+  attributionManagerA.suggestionMode = true;
+  attributionManagerB.suggestionMode = true;
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+  });
+  const suggestionEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocA.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager: attributionManagerA,
+    },
+  });
+  const suggestionEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocB.get("doc"),
+      user: { name: "B", color: "#000" },
+      attributionManager: attributionManagerB,
+    },
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+  suggestionEditorA.mount(document.createElement("div"));
+  suggestionEditorB.mount(document.createElement("div"));
+
+  mainEditorA.replaceBlocks(mainEditorA.document, [
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(mainEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(mainEditorB.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorB.prosemirrorState)?.undoManager?.clear();
+
+  const typeIntoBlock = async (
+    editor: BlockNoteEditor<any, any, any>,
+    blockIndex: number,
+    text: string,
+  ) => {
+    editor.setTextCursorPosition(editor.document[blockIndex], "start");
+    for (const ch of text) {
+      editor.insertInlineContent(ch);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager?.stopCapturing();
+  };
+
+  await typeIntoBlock(mainEditorA, 0, "asdfasdfasdfadsfa");
+  await typeIntoBlock(mainEditorB, 1, "123123123123");
+  await typeIntoBlock(mainEditorA, 2, "asdfasdfasdf");
+  await typeIntoBlock(mainEditorB, 3, "123123123123");
+  await typeIntoBlock(mainEditorA, 4, "asdfadsdfasdf");
+
+  yUndoPluginKey.getState(mainEditorA.prosemirrorState)?.undoManager?.stopCapturing();
+  mainEditorA.undo();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(getTextNodesWithMarks(mainEditorA)).toEqual([
+    { text: "asdfasdfasdfadsfa", marks: [] },
+    { text: "123123123123", marks: [] },
+    { text: "asdfasdfasdf", marks: [] },
+    { text: "123123123123", marks: [] },
+  ]);
+  expect(getTextNodesWithMarks(mainEditorB)).toEqual([
+    { text: "asdfasdfasdfadsfa", marks: [] },
+    { text: "123123123123", marks: [] },
+    { text: "asdfasdfasdf", marks: [] },
+    { text: "123123123123", marks: [] },
+  ]);
+  expect(getTextNodesWithMarks(suggestionEditorA)).toEqual([
+    { text: "asdfasdfasdfadsfa", marks: [] },
+    { text: "123123123123", marks: [] },
+    { text: "asdfasdfasdf", marks: [] },
+    { text: "123123123123", marks: [] },
+  ]);
+  expect(getTextNodesWithMarks(suggestionEditorB)).toEqual([
+    { text: "asdfasdfasdfadsfa", marks: [] },
+    { text: "123123123123", marks: [] },
+    { text: "asdfasdfasdf", marks: [] },
+    { text: "123123123123", marks: [] },
+  ]);
+});
+
+it("undoes the local first line without corrupting the remote second line", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const editorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const editorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+  });
+
+  editorA.mount(document.createElement("div"));
+  editorB.mount(document.createElement("div"));
+
+  editorA.replaceBlocks(editorA.document, [
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(editorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(editorB.prosemirrorState)?.undoManager?.clear();
+
+  const typeIntoBlock = async (
+    editor: BlockNoteEditor<any, any, any>,
+    blockIndex: number,
+    text: string,
+  ) => {
+    editor.setTextCursorPosition(editor.document[blockIndex], "start");
+    for (const ch of text) {
+      editor.insertInlineContent(ch);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager?.stopCapturing();
+  };
+
+  await typeIntoBlock(editorA, 0, "123123123");
+  await typeIntoBlock(editorB, 1, "asdasdasdasd");
+
+  expect(() => editorA.undo()).not.toThrow();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(getTextNodesWithMarks(editorA)).toEqual([
+    { text: "asdasdasdasd", marks: [] },
+  ]);
+  expect(getTextNodesWithMarks(editorB)).toEqual([
+    { text: "asdasdasdasd", marks: [] },
+  ]);
+});
+
+it("undoes the local first line without corrupting remote text in suggestion mode", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+  const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+  const attributionManagerA = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocA,
+    { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+  );
+  const attributionManagerB = Y.createAttributionManagerFromDiff(
+    docB,
+    suggestionDocB,
+    { attrs: createSuggestionAttrs(docB, suggestionDocB) },
+  );
+  attributionManagerA.suggestionMode = true;
+  attributionManagerB.suggestionMode = true;
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+  });
+  const suggestionEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocA.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager: attributionManagerA,
+    },
+  });
+  const suggestionEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocB.get("doc"),
+      user: { name: "B", color: "#000" },
+      attributionManager: attributionManagerB,
+    },
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+  suggestionEditorA.mount(document.createElement("div"));
+  suggestionEditorB.mount(document.createElement("div"));
+
+  mainEditorA.replaceBlocks(mainEditorA.document, [
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(mainEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(mainEditorB.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorB.prosemirrorState)?.undoManager?.clear();
+
+  const typeIntoBlock = async (
+    editor: BlockNoteEditor<any, any, any>,
+    blockIndex: number,
+    text: string,
+  ) => {
+    editor.setTextCursorPosition(editor.document[blockIndex], "start");
+    for (const ch of text) {
+      editor.insertInlineContent(ch);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager?.stopCapturing();
+  };
+
+  await typeIntoBlock(mainEditorA, 0, "123123123");
+  await typeIntoBlock(mainEditorB, 1, "asdasdasdasd");
+
+  expect(() => mainEditorA.undo()).not.toThrow();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(getTextNodesWithMarks(mainEditorA)).toEqual([
+    { text: "asdasdasdasd", marks: [] },
+  ]);
+  expect(getTextNodesWithMarks(mainEditorB)).toEqual([
+    { text: "asdasdasdasd", marks: [] },
+  ]);
+  expect(getTextNodesWithMarks(suggestionEditorA)).toEqual([
+    { text: "asdasdasdasd", marks: [] },
+  ]);
+  expect(getTextNodesWithMarks(suggestionEditorB)).toEqual([
+    { text: "asdasdasdasd", marks: [] },
+  ]);
+});
+
+it("undoes first-paragraph text without crashing in suggestion mode", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+  const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+  const attributionManagerA = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocA,
+    { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+  );
+  const attributionManagerB = Y.createAttributionManagerFromDiff(
+    docB,
+    suggestionDocB,
+    { attrs: createSuggestionAttrs(docB, suggestionDocB) },
+  );
+  attributionManagerA.suggestionMode = true;
+  attributionManagerB.suggestionMode = true;
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+  });
+  const suggestionEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocA.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager: attributionManagerA,
+    },
+  });
+  const suggestionEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocB.get("doc"),
+      user: { name: "B", color: "#000" },
+      attributionManager: attributionManagerB,
+    },
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+  suggestionEditorA.mount(document.createElement("div"));
+  suggestionEditorB.mount(document.createElement("div"));
+
+  mainEditorA.replaceBlocks(mainEditorA.document, [
+    { type: "paragraph", content: "" },
+    { type: "paragraph", content: "" },
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(mainEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(mainEditorB.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorB.prosemirrorState)?.undoManager?.clear();
+
+  const typeIntoBlock = async (
+    editor: BlockNoteEditor<any, any, any>,
+    blockIndex: number,
+    text: string,
+  ) => {
+    editor.setTextCursorPosition(editor.document[blockIndex], "start");
+    for (const ch of text) {
+      editor.insertInlineContent(ch);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager?.stopCapturing();
+  };
+
+  await typeIntoBlock(mainEditorA, 0, "123123123");
+  await typeIntoBlock(mainEditorB, 1, "asdasdasdasd");
+
+  expect(() => mainEditorA.undo()).not.toThrow();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(getTextNodesWithMarks(mainEditorA)).toEqual([
+    { text: "asdasdasdasd", marks: [] },
+  ]);
+  expect(getTextNodesWithMarks(suggestionEditorA)).toEqual([
+    { text: "asdasdasdasd", marks: [] },
+  ]);
+});
+
+it("undoes the first edit in the initial paragraph without crashing", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+  const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+  const attributionManagerA = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocA,
+    { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+  );
+  const attributionManagerB = Y.createAttributionManagerFromDiff(
+    docB,
+    suggestionDocB,
+    { attrs: createSuggestionAttrs(docB, suggestionDocB) },
+  );
+  attributionManagerA.suggestionMode = true;
+  attributionManagerB.suggestionMode = true;
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+  });
+  const suggestionEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocA.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager: attributionManagerA,
+    },
+  });
+  const suggestionEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocB.get("doc"),
+      user: { name: "B", color: "#000" },
+      attributionManager: attributionManagerB,
+    },
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+  suggestionEditorA.mount(document.createElement("div"));
+  suggestionEditorB.mount(document.createElement("div"));
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(mainEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(mainEditorB.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorB.prosemirrorState)?.undoManager?.clear();
+
+  const typeIntoBlock = async (
+    editor: BlockNoteEditor<any, any, any>,
+    blockIndex: number,
+    text: string,
+  ) => {
+    editor.setTextCursorPosition(editor.document[blockIndex], "start");
+    for (const ch of text) {
+      editor.insertInlineContent(ch);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager?.stopCapturing();
+  };
+
+  await typeIntoBlock(mainEditorA, 0, "123123123");
+  expect(() => mainEditorA.undo()).not.toThrow();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(getTextNodesWithMarks(mainEditorA)).toEqual([]);
+  expect(getTextNodesWithMarks(mainEditorB)).toEqual([]);
+  expect(getTextNodesWithMarks(suggestionEditorA)).toEqual([]);
+  expect(getTextNodesWithMarks(suggestionEditorB)).toEqual([]);
+});
+
+it("undoes the first edit in the initial paragraph with comments extensions mounted", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+  const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+  const attributionManagerA = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocA,
+    { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+  );
+  const attributionManagerB = Y.createAttributionManagerFromDiff(
+    docB,
+    suggestionDocB,
+    { attrs: createSuggestionAttrs(docB, suggestionDocB) },
+  );
+  attributionManagerA.suggestionMode = true;
+  attributionManagerB.suggestionMode = true;
+
+  const resolveUsers = async (userIds: string[]) =>
+    userIds.map((id) => ({ id, username: id, avatarUrl: "" }));
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+    extensions: [
+      CommentsExtension({
+        threadStore: new YjsThreadStore(
+          "alice",
+          docA.get("threads"),
+          new DefaultThreadStoreAuth("alice", "editor"),
+        ),
+        resolveUsers,
+      }),
+    ],
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+    extensions: [
+      CommentsExtension({
+        threadStore: new YjsThreadStore(
+          "bob",
+          docB.get("threads"),
+          new DefaultThreadStoreAuth("bob", "editor"),
+        ),
+        resolveUsers,
+      }),
+    ],
+  });
+  const suggestionEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocA.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager: attributionManagerA,
+    },
+    extensions: [
+      CommentsExtension({
+        threadStore: new YjsThreadStore(
+          "alice",
+          suggestionDocA.get("threads"),
+          new DefaultThreadStoreAuth("alice", "editor"),
+        ),
+        resolveUsers,
+      }),
+    ],
+  });
+  const suggestionEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocB.get("doc"),
+      user: { name: "B", color: "#000" },
+      attributionManager: attributionManagerB,
+    },
+    extensions: [
+      CommentsExtension({
+        threadStore: new YjsThreadStore(
+          "bob",
+          suggestionDocB.get("threads"),
+          new DefaultThreadStoreAuth("bob", "editor"),
+        ),
+        resolveUsers,
+      }),
+    ],
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+  suggestionEditorA.mount(document.createElement("div"));
+  suggestionEditorB.mount(document.createElement("div"));
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  yUndoPluginKey.getState(mainEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(mainEditorB.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorA.prosemirrorState)?.undoManager?.clear();
+  yUndoPluginKey.getState(suggestionEditorB.prosemirrorState)?.undoManager?.clear();
+
+  mainEditorA.setTextCursorPosition(mainEditorA.document[0], "start");
+  for (const ch of "123123123") {
+    mainEditorA.insertInlineContent(ch);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  yUndoPluginKey.getState(mainEditorA.prosemirrorState)?.undoManager?.stopCapturing();
+
+  expect(() => mainEditorA.undo()).not.toThrow();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(getTextNodesWithMarks(mainEditorA)).toEqual([]);
+  expect(getTextNodesWithMarks(mainEditorB)).toEqual([]);
+  expect(getTextNodesWithMarks(suggestionEditorA)).toEqual([]);
+  expect(getTextNodesWithMarks(suggestionEditorB)).toEqual([]);
+});
+
+it("reproduces heading formatting failure on a blank paragraph in suggestion mode", async () => {
+  const errorPromise = new Promise<Error>((resolve) => {
+    process.prependOnceListener("uncaughtException", resolve);
+  });
+
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+  const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+  const attributionManagerA = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocA,
+    { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+  );
+  const attributionManagerB = Y.createAttributionManagerFromDiff(
+    docB,
+    suggestionDocB,
+    { attrs: createSuggestionAttrs(docB, suggestionDocB) },
+  );
+  attributionManagerA.suggestionMode = true;
+  attributionManagerB.suggestionMode = true;
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+  });
+  const suggestionEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocA.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager: attributionManagerA,
+    },
+  });
+  const suggestionEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocB.get("doc"),
+      user: { name: "B", color: "#000" },
+      attributionManager: attributionManagerB,
+    },
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+  suggestionEditorA.mount(document.createElement("div"));
+  suggestionEditorB.mount(document.createElement("div"));
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  const firstBlockId = mainEditorA.document[0].id;
+  mainEditorA.updateBlock(firstBlockId, {
+    type: "heading",
+    props: { level: 1 },
+  } as any);
+  const error = await errorPromise;
+
+  expect(error.message).toBe("Unexpected case");
 });

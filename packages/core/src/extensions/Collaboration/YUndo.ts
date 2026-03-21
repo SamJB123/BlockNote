@@ -24,7 +24,6 @@ const deleteFilter = (item: any) => {
   if (!type || typeof type.length !== "number") return true;
   const name: string | null = type.name ?? null;
   if (name !== null && protectedNodes.has(name) && type.length > 0) return false;
-  if (name === null && type.length > 0) return false;
   return true;
 };
 
@@ -49,7 +48,8 @@ export const YUndoExtension = createExtension(
     const undoManager = new Y.UndoManager(options.fragment, {
       trackedOrigins: new Set([ySyncPluginKey]),
       deleteFilter,
-      captureTransaction: (tr) => tr.meta.get("addToHistory") !== false,
+      captureTransaction: (tr) =>
+        tr.meta.get("addToHistory") !== false && tr.local,
     });
 
     return {

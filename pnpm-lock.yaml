@@ -10226,7 +10226,7 @@ packages:
     engines: {node: '>=16.0.0', npm: '>=8.0.0'}
     peerDependencies:
       '@y/protocols': ^1.0.6-rc.1
-      '@y/y': ^14.0.0-rc.1
+      '@y/y': ^14.0.0-rc.2
       prosemirror-model: ^1.7.1
       prosemirror-state: ^1.2.3
       prosemirror-view: ^1.9.10

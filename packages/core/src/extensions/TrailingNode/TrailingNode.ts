@@ -29,10 +29,12 @@ export const TrailingNodeExtension = createExtension(() => {
             return;
           }
 
-          return tr.insert(
+          const insertTr = tr.insert(
             endPosition,
             type.create(undefined, contentType.create()),
           );
+          insertTr.setMeta("addToHistory", false);
+          return insertTr;
         },
         state: {
           init: (_, _state) => {

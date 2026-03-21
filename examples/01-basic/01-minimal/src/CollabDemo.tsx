@@ -43,7 +43,7 @@ const suggestingAttributionManager = Y.createAttributionManagerFromDiff(
     attrs: createSuggestionAttrs(doc, suggestingDoc),
   },
 );
-suggestingAttributionManager.suggestionMode = false;
+suggestingAttributionManager.suggestionMode = true;
 
 const suggestionModeDoc = new Y.Doc({ isSuggestionDoc: true });
 const suggestionModeProvider = {
@@ -173,7 +173,19 @@ function Editor({
     extensions: [CommentsExtension({ threadStore, resolveUsers })],
   });
 
-  return <BlockNoteView editor={editor} />;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button type="button" onClick={() => editor.undo()}>
+          Undo
+        </button>
+        <button type="button" onClick={() => editor.redo()}>
+          Redo
+        </button>
+      </div>
+      <BlockNoteView editor={editor} />
+    </div>
+  );
 }
 
 export function CollabDemo() {
