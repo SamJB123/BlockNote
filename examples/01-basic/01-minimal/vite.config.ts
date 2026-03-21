@@ -7,7 +7,9 @@ import { defineConfig } from "vite";
 // https://vitejs.dev/config/
 export default defineConfig((conf) => ({
   plugins: [react()],
-  optimizeDeps: {},
+  optimizeDeps: {
+    exclude: ["@y/prosemirror"],
+  },
   build: {
     sourcemap: true,
   },

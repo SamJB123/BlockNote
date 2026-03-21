@@ -1,3 +1,4 @@
+import { ySyncPluginKey } from "@y/prosemirror";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { createExtension } from "../../editor/BlockNoteExtension.js";
 
@@ -10,6 +11,24 @@ import { createExtension } from "../../editor/BlockNoteExtension.js";
  */
 const plugin = new PluginKey("trailingNode");
 
+function originatesFromYSyncHydration(transactions: readonly any[]) {
+  return transactions.some((transaction) => {
+    let current = transaction;
+    while (current) {
+      const ySyncMeta = current.getMeta?.(ySyncPluginKey);
+      if (
+        current.getMeta?.("y-sync-hydration") ||
+        ySyncMeta?.type === "remote-update" ||
+        ySyncMeta?.type === "initialized"
+      ) {
+        return true;
+      }
+      current = current.getMeta?.("appendedTransaction");
+    }
+    return false;
+  });
+}
+
 /**
  * Add a trailing node to the document so the user can always click at the bottom of the document and start typing
  */
@@ -19,7 +38,10 @@ export const TrailingNodeExtension = createExtension(() => {
     prosemirrorPlugins: [
       new Plugin({
         key: plugin,
-        appendTransaction: (_, __, state) => {
+        appendTransaction: (transactions, __, state) => {
+          if (originatesFromYSyncHydration(transactions)) {
+            return;
+          }
           const { doc, tr, schema } = state;
           const shouldInsertNodeAtEnd = plugin.getState(state);
           const endPosition = doc.content.size - 2;

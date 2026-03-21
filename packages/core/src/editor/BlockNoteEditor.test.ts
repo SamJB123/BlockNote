@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import * as Y from "@y/y";
-import { yUndoPluginKey } from "@y/prosemirror";
+import { ySyncPluginKey, yUndoPluginKey } from "@y/prosemirror";
 import {
   CommentsExtension,
   DefaultThreadStoreAuth,
@@ -1246,11 +1246,7 @@ it("undoes the first edit in the initial paragraph with comments extensions moun
   expect(getTextNodesWithMarks(suggestionEditorB)).toEqual([]);
 });
 
-it("reproduces heading formatting failure on a blank paragraph in suggestion mode", async () => {
-  const errorPromise = new Promise<Error>((resolve) => {
-    process.prependOnceListener("uncaughtException", resolve);
-  });
-
+it("syncs heading formatting on a blank paragraph in suggestion mode", async () => {
   const docA = new Y.Doc();
   const docB = new Y.Doc();
   setupTwoWaySync(docA, docB);
@@ -1305,11 +1301,495 @@ it("reproduces heading formatting failure on a blank paragraph in suggestion mod
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   const firstBlockId = mainEditorA.document[0].id;
-  mainEditorA.updateBlock(firstBlockId, {
+  expect(() =>
+    mainEditorA.updateBlock(firstBlockId, {
+      type: "heading",
+      props: { level: 1 },
+    } as any),
+  ).not.toThrow();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(mainEditorA.document[0].type).toBe("heading");
+  expect(mainEditorB.document[0].type).toBe("heading");
+  expect(suggestionEditorA.document[0].type).toBe("heading");
+  expect(suggestionEditorB.document[0].type).toBe("heading");
+});
+
+it("does not throw during remote hydration when formatting a blank paragraph", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+  const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+  setupTwoWaySync(suggestionDocA, suggestionDocB);
+
+  const attributionManagerA = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocA,
+    { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+  );
+  const attributionManagerB = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocB,
+    { attrs: createSuggestionAttrs(docA, suggestionDocB) },
+  );
+  attributionManagerA.suggestionMode = true;
+  attributionManagerB.suggestionMode = true;
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+  });
+  const suggestionEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocA.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager: attributionManagerA,
+    },
+  });
+  const suggestionEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocB.get("doc"),
+      user: { name: "B", color: "#000" },
+      attributionManager: attributionManagerB,
+    },
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+  suggestionEditorA.mount(document.createElement("div"));
+  suggestionEditorB.mount(document.createElement("div"));
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  let listener: ((error: Error) => void) | undefined;
+  const errorPromise = new Promise<Error>((resolve) => {
+    listener = resolve;
+    process.prependOnceListener("uncaughtException", listener);
+  });
+
+  mainEditorA.updateBlock(mainEditorA.document[0].id, {
     type: "heading",
     props: { level: 1 },
   } as any);
-  const error = await errorPromise;
 
-  expect(error.message).toBe("Unexpected case");
+  const result = await Promise.race([
+    errorPromise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 750)),
+  ]);
+
+  if (listener) {
+    process.removeListener("uncaughtException", listener);
+  }
+
+  expect(result).toBeNull();
+  expect(mainEditorB.document[0].type).toBe("heading");
+  expect(suggestionEditorA.document[0].type).toBe("heading");
+  expect(suggestionEditorB.document[0].type).toBe("heading");
+});
+
+it("continues syncing text after structural formatting in suggestion mode", async () => {
+  const captureFailure = async (run: () => void) => {
+    let listener: ((error: Error) => void) | undefined;
+    const errorPromise = new Promise<Error>((resolve) => {
+      listener = resolve;
+      process.prependOnceListener("uncaughtException", listener);
+    });
+    let syncError: Error | null = null;
+    try {
+      run();
+    } catch (error) {
+      syncError = error as Error;
+    }
+    if (syncError) {
+      if (listener) {
+        process.removeListener("uncaughtException", listener);
+      }
+      return syncError;
+    }
+    const result = await Promise.race([
+      errorPromise,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 500)),
+    ]);
+    if (listener) {
+      process.removeListener("uncaughtException", listener);
+    }
+    return result;
+  };
+
+  const setupScenario = async () => {
+    const docA = new Y.Doc();
+    const docB = new Y.Doc();
+    setupTwoWaySync(docA, docB);
+
+    const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+    const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+    setupTwoWaySync(suggestionDocA, suggestionDocB);
+    const attributionManagerA = Y.createAttributionManagerFromDiff(
+      docA,
+      suggestionDocA,
+      { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+    );
+    const attributionManagerB = Y.createAttributionManagerFromDiff(
+      docA,
+      suggestionDocB,
+      { attrs: createSuggestionAttrs(docA, suggestionDocB) },
+    );
+    attributionManagerA.suggestionMode = true;
+    attributionManagerB.suggestionMode = true;
+
+    const mainEditorA = BlockNoteEditor.create({
+      collaboration: {
+        fragment: docA.get("doc"),
+        user: { name: "A", color: "#fff" },
+      },
+    });
+    const mainEditorB = BlockNoteEditor.create({
+      collaboration: {
+        fragment: docB.get("doc"),
+        user: { name: "B", color: "#000" },
+      },
+    });
+    const suggestionEditorA = BlockNoteEditor.create({
+      collaboration: {
+        fragment: suggestionDocA.get("doc"),
+        user: { name: "A", color: "#fff" },
+        attributionManager: attributionManagerA,
+      },
+    });
+    const suggestionEditorB = BlockNoteEditor.create({
+      collaboration: {
+        fragment: suggestionDocB.get("doc"),
+        user: { name: "B", color: "#000" },
+        attributionManager: attributionManagerB,
+      },
+    });
+
+    mainEditorA.mount(document.createElement("div"));
+    mainEditorB.mount(document.createElement("div"));
+    suggestionEditorA.mount(document.createElement("div"));
+    suggestionEditorB.mount(document.createElement("div"));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    return {
+      mainEditorA,
+      mainEditorB,
+      suggestionEditorA,
+      suggestionEditorB,
+    };
+  };
+
+  const runScenario = async (setupAction: (ctx: Awaited<ReturnType<typeof setupScenario>>) => void, followUp: (ctx: Awaited<ReturnType<typeof setupScenario>>) => void) => {
+    const ctx = await setupScenario();
+    setupAction(ctx);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return captureFailure(() => followUp(ctx));
+  };
+
+  const followUpResults = {
+    headingThenMainAText: await runScenario(
+      ({ mainEditorA }) => {
+        mainEditorA.updateBlock(mainEditorA.document[0].id, {
+          type: "heading",
+          props: { level: 1 },
+        } as any);
+      },
+      ({ mainEditorA }) => {
+        mainEditorA.setTextCursorPosition(mainEditorA.document[0], "start");
+        mainEditorA.insertInlineContent("x");
+      },
+    ),
+    headingThenMainBText: await runScenario(
+      ({ mainEditorA }) => {
+        mainEditorA.updateBlock(mainEditorA.document[0].id, {
+          type: "heading",
+          props: { level: 1 },
+        } as any);
+      },
+      ({ mainEditorB }) => {
+        mainEditorB.setTextCursorPosition(mainEditorB.document[0], "start");
+        mainEditorB.insertInlineContent("y");
+      },
+    ),
+    bulletThenMainBText: await runScenario(
+      ({ mainEditorA }) => {
+        mainEditorA.updateBlock(mainEditorA.document[0].id, {
+          type: "bulletListItem",
+        } as any);
+      },
+      ({ mainEditorB }) => {
+        mainEditorB.setTextCursorPosition(mainEditorB.document[0], "start");
+        mainEditorB.insertInlineContent("y");
+      },
+    ),
+  };
+
+  expect(followUpResults.headingThenMainAText).toBeNull();
+  expect(followUpResults.headingThenMainBText).toBeNull();
+  expect(followUpResults.bulletThenMainBText).toBeNull();
+});
+
+it("does not throw when formatting a non-empty paragraph in collaboration demo topology", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+  const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+  setupTwoWaySync(suggestionDocA, suggestionDocB);
+
+  const attributionManagerA = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocA,
+    { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+  );
+  const attributionManagerB = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocB,
+    { attrs: createSuggestionAttrs(docA, suggestionDocB) },
+  );
+  attributionManagerA.suggestionMode = true;
+  attributionManagerB.suggestionMode = true;
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+  });
+  const suggestionEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocA.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager: attributionManagerA,
+    },
+  });
+  const suggestionEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocB.get("doc"),
+      user: { name: "B", color: "#000" },
+      attributionManager: attributionManagerB,
+    },
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+  suggestionEditorA.mount(document.createElement("div"));
+  suggestionEditorB.mount(document.createElement("div"));
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  mainEditorA.updateBlock(mainEditorA.document[0].id, {
+    content: "hello world",
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  let listener: ((error: Error) => void) | undefined;
+  const errorPromise = new Promise<Error>((resolve) => {
+    listener = resolve;
+    process.prependOnceListener("uncaughtException", listener);
+  });
+
+  mainEditorA.transact(() => {
+    mainEditorA.updateBlock(mainEditorA.document[0].id, {
+      type: "heading",
+      props: { level: 1 },
+    } as any);
+  });
+
+  const result = await Promise.race([
+    errorPromise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000)),
+  ]);
+
+  if (listener) {
+    process.removeListener("uncaughtException", listener);
+  }
+
+  expect(result).toBeNull();
+  expect(mainEditorB.document[0].type).toBe("heading");
+  expect(suggestionEditorA.document[0].type).toBe("heading");
+  expect(suggestionEditorB.document[0].type).toBe("heading");
+});
+
+it("does not create extra remote lines or crash after typing into a formatted block", async () => {
+  const docA = new Y.Doc();
+  const docB = new Y.Doc();
+  setupTwoWaySync(docA, docB);
+
+  const suggestionDocA = new Y.Doc({ isSuggestionDoc: true });
+  const suggestionDocB = new Y.Doc({ isSuggestionDoc: true });
+  setupTwoWaySync(suggestionDocA, suggestionDocB);
+
+  const attributionManagerA = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocA,
+    { attrs: createSuggestionAttrs(docA, suggestionDocA) },
+  );
+  const attributionManagerB = Y.createAttributionManagerFromDiff(
+    docA,
+    suggestionDocB,
+    { attrs: createSuggestionAttrs(docA, suggestionDocB) },
+  );
+  attributionManagerA.suggestionMode = true;
+  attributionManagerB.suggestionMode = true;
+
+  const mainBTransactions: Array<Record<string, unknown>> = [];
+  const suggestionATransactions: Array<Record<string, unknown>> = [];
+  const suggestionBTransactions: Array<Record<string, unknown>> = [];
+
+  const mainEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docA.get("doc"),
+      user: { name: "A", color: "#fff" },
+    },
+  });
+  const mainEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: docB.get("doc"),
+      user: { name: "B", color: "#000" },
+    },
+    _tiptapOptions: {
+      onTransaction: ({ transaction, editor }) => {
+        mainBTransactions.push({
+          docChanged: transaction.docChanged,
+          steps: transaction.steps.map((step) => step.constructor.name),
+          addToHistory: transaction.getMeta("addToHistory"),
+          ySyncType: transaction.getMeta(ySyncPluginKey)?.type ?? null,
+          ySyncHydration: Boolean(transaction.getMeta("y-sync-hydration")),
+          uniqueID: Boolean(transaction.getMeta("uniqueID")),
+          appended: Boolean(transaction.getMeta("appendedTransaction")),
+          length: editor.state.doc.firstChild?.childCount,
+          doc: editor.state.doc.toJSON(),
+        });
+      },
+    },
+  });
+  const suggestionEditorA = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocA.get("doc"),
+      user: { name: "A", color: "#fff" },
+      attributionManager: attributionManagerA,
+    },
+    _tiptapOptions: {
+      onTransaction: ({ transaction, editor }) => {
+        suggestionATransactions.push({
+          docChanged: transaction.docChanged,
+          steps: transaction.steps.map((step) => step.constructor.name),
+          addToHistory: transaction.getMeta("addToHistory"),
+          ySyncType: transaction.getMeta(ySyncPluginKey)?.type ?? null,
+          ySyncHydration: Boolean(transaction.getMeta("y-sync-hydration")),
+          uniqueID: Boolean(transaction.getMeta("uniqueID")),
+          appended: Boolean(transaction.getMeta("appendedTransaction")),
+          length: editor.state.doc.firstChild?.childCount,
+        });
+      },
+    },
+  });
+  const suggestionEditorB = BlockNoteEditor.create({
+    collaboration: {
+      fragment: suggestionDocB.get("doc"),
+      user: { name: "B", color: "#000" },
+      attributionManager: attributionManagerB,
+    },
+    _tiptapOptions: {
+      onTransaction: ({ transaction, editor }) => {
+        suggestionBTransactions.push({
+          docChanged: transaction.docChanged,
+          steps: transaction.steps.map((step) => step.constructor.name),
+          addToHistory: transaction.getMeta("addToHistory"),
+          ySyncType: transaction.getMeta(ySyncPluginKey)?.type ?? null,
+          ySyncHydration: Boolean(transaction.getMeta("y-sync-hydration")),
+          uniqueID: Boolean(transaction.getMeta("uniqueID")),
+          appended: Boolean(transaction.getMeta("appendedTransaction")),
+          length: editor.state.doc.firstChild?.childCount,
+        });
+      },
+    },
+  });
+
+  mainEditorA.mount(document.createElement("div"));
+  mainEditorB.mount(document.createElement("div"));
+  suggestionEditorA.mount(document.createElement("div"));
+  suggestionEditorB.mount(document.createElement("div"));
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  mainEditorA.updateBlock(mainEditorA.document[0].id, {
+    content: "hello world",
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  console.log("mainBTransactionsAfterText", JSON.stringify(mainBTransactions, null, 2));
+  console.log("suggestionATransactionsAfterText", JSON.stringify(suggestionATransactions, null, 2));
+  console.log("suggestionBTransactionsAfterText", JSON.stringify(suggestionBTransactions, null, 2));
+  console.log("preFormatIds", mainEditorA.document.map(b => b.id), mainEditorB.document.map(b => b.id));
+
+  mainEditorA.transact(() => {
+    mainEditorA.updateBlock(mainEditorA.document[0].id, {
+      type: "heading",
+      props: { level: 1 },
+    } as any);
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  console.log("mainBTransactionsAfterFormat", JSON.stringify(mainBTransactions, null, 2));
+  console.log("suggestionATransactionsAfterFormat", JSON.stringify(suggestionATransactions, null, 2));
+  console.log("suggestionBTransactionsAfterFormat", JSON.stringify(suggestionBTransactions, null, 2));
+
+  if (
+    mainEditorA.document.length !== 2 ||
+    mainEditorB.document.length !== 2 ||
+    suggestionEditorA.document.length !== 2 ||
+    suggestionEditorB.document.length !== 2
+  ) {
+    console.log("mainEditorA", JSON.stringify(mainEditorA.prosemirrorState.doc.toJSON(), null, 2));
+    console.log("mainEditorB", JSON.stringify(mainEditorB.prosemirrorState.doc.toJSON(), null, 2));
+    console.log("suggestionEditorA", JSON.stringify(suggestionEditorA.prosemirrorState.doc.toJSON(), null, 2));
+    console.log("suggestionEditorB", JSON.stringify(suggestionEditorB.prosemirrorState.doc.toJSON(), null, 2));
+    console.log("docA", JSON.stringify(docA.get("doc").toDelta(Y.noAttributionsManager, { deep: true }).toJSON(), null, 2));
+    console.log("docB", JSON.stringify(docB.get("doc").toDelta(Y.noAttributionsManager, { deep: true }).toJSON(), null, 2));
+  }
+
+  expect(mainEditorA.document.length).toBe(2);
+  expect(mainEditorB.document.length).toBe(2);
+  expect(suggestionEditorA.document.length).toBe(2);
+  expect(suggestionEditorB.document.length).toBe(2);
+
+  let listener: ((error: Error) => void) | undefined;
+  const errorPromise = new Promise<Error>((resolve) => {
+    listener = resolve;
+    process.prependOnceListener("uncaughtException", listener);
+  });
+
+  mainEditorB.setTextCursorPosition(mainEditorB.document[0], "end");
+  mainEditorB.insertInlineContent("!");
+
+  const result = await Promise.race([
+    errorPromise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000)),
+  ]);
+
+  if (listener) {
+    process.removeListener("uncaughtException", listener);
+  }
+
+  expect(result).toBeNull();
+  expect(mainEditorA.document[0].content).toEqual(mainEditorB.document[0].content);
 });
