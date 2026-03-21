@@ -76,7 +76,13 @@ export class YjsThreadStore extends YjsThreadStoreBase {
         metadata: options.metadata,
       };
 
-      this.threadsYType.setAttr(thread.id, threadToYType(thread));
+      const yThread = threadToYType({
+        ...thread,
+        comments: [],
+      });
+      this.threadsYType.setAttr(thread.id, yThread);
+      const commentsYType = yThread.getAttr("comments") as Y.Type;
+      commentsYType.push(thread.comments.map((entry) => commentToYType(entry)));
 
       return thread;
     },

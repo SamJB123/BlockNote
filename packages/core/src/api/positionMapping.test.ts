@@ -409,7 +409,7 @@ describe("PositionStorage with remote editor", () => {
       remoteEditor._tiptapEditor.destroy();
     });
 
-    it("should update the local position from a remote transaction", () => {
+    it("should update the local position from a remote transaction", async () => {
       const ydoc = new Y.Doc();
       const remoteYdoc = new Y.Doc();
 
@@ -442,6 +442,7 @@ describe("PositionStorage with remote editor", () => {
           content: "Hello World",
         },
       ]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Store position at "Hello| World"
       const getCursorPos = trackPosition(localEditor, 6);
@@ -470,7 +471,7 @@ describe("PositionStorage with remote editor", () => {
       remoteEditor._tiptapEditor.destroy();
     });
 
-    it("should update the remote position from a remote transaction", () => {
+    it("should update the remote position from a remote transaction", async () => {
       const ydoc = new Y.Doc();
       const remoteYdoc = new Y.Doc();
 
@@ -503,6 +504,7 @@ describe("PositionStorage with remote editor", () => {
           content: "Hello World",
         },
       ]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Store position at "Hello| World"
       const getCursorPos = trackPosition(remoteEditor, 6);
@@ -517,6 +519,8 @@ describe("PositionStorage with remote editor", () => {
 
       // Insert text at the beginning
       localEditor._tiptapEditor.commands.insertContentAt(3, "Test ");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Position should be updated
       expect(getCursorPos()).toBe(11); // 6 + 5 ("Test " length)

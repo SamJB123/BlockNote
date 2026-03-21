@@ -58,6 +58,22 @@ describe("YjsThreadStore", () => {
         ],
       });
     });
+
+    it("does not warn about detached Yjs types when creating a thread", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      await store.createThread({
+        initialComment: {
+          body: "Test comment" as CommentBody,
+        },
+      });
+
+      expect(errorSpy).not.toHaveBeenCalledWith(
+        "Invalid access: Add Yjs type to a document before reading data.",
+      );
+
+      errorSpy.mockRestore();
+    });
   });
 
   describe("addComment", () => {

@@ -17,12 +17,12 @@ export const YSyncExtension = createExtension(
         syncPlugin(options.fragment, {
           attributionManager: options.attributionManager,
           mapAttributionToMark(format, attribution) {
-            if (attribution.delete) {
+            if (Array.isArray(attribution.delete) ? attribution.delete.length > 0 : !!attribution.delete) {
               return Object.assign({}, format, {
                 deletion: { id: Date.now(), user: attribution.delete?.[0] },
               });
             }
-            if (attribution.insert) {
+            if (Array.isArray(attribution.insert) ? attribution.insert.length > 0 : !!attribution.insert) {
               return Object.assign({}, format, {
                 insertion: { id: Date.now(), user: attribution.insert?.[0] },
               });

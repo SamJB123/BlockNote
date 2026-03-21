@@ -22,6 +22,9 @@ export function commentToYType(comment: CommentData) {
    * this makes it easy to add / remove reactions and in a way that works local-first.
    * The cost is that "reading" the reactions is a bit more complex (see yTypeToReactions).
    */
+  // Use a nested shared type as a map, but only allocate the empty container here.
+  // Reading from detached nested types can trigger Yjs warnings, so we avoid any
+  // write operations on the child before the parent gets integrated into a doc.
   yt.setAttr("reactionsByUser", new Y.Type());
   yt.setAttr("metadata", comment.metadata);
 
@@ -35,13 +38,17 @@ export function threadToYType(thread: ThreadData) {
   yt.setAttr("updatedAt", thread.updatedAt.getTime());
   const commentsArray = new Y.Type();
 
-  commentsArray.push(thread.comments.map((comment) => commentToYType(comment)));
-
   yt.setAttr("comments", commentsArray);
   yt.setAttr("resolved", thread.resolved);
   yt.setAttr("resolvedUpdatedAt", thread.resolvedUpdatedAt?.getTime());
   yt.setAttr("resolvedBy", thread.resolvedBy);
   yt.setAttr("metadata", thread.metadata);
+
+  // Populate nested comments only after the thread type itself is attached to a
+  // document. Detached Yjs list operations warn because they read list state.
+  if (thread.comments.length > 0 && yt.doc) {
+    commentsArray.push(thread.comments.map((comment) => commentToYType(comment)));
+  }
   return yt;
 }
 
