@@ -14,7 +14,7 @@
     "access": "restricted"
   },
   "license": "MPL-2.0",
-  "version": "0.47.2-collab.0",
+  "version": "0.47.2-collab.2",
   "files": [
     "dist",
     "types",
@@ -128,7 +128,7 @@
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",
     "uuid": "^8.3.2",
-    "@samjb/y-prosemirror": "2.0.0-collab.0",
+    "@samjb/y-prosemirror": "2.0.0-collab.1",
     "@y/protocols": "1.0.6-rc.1",
     "@y/y": "14.0.0-rc.2",
     "lib0": "1.0.0-rc.6"

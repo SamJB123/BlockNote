@@ -5,6 +5,7 @@ import {
   ExtensionOptions,
 } from "../../editor/BlockNoteExtension.js";
 import { CollaborationOptions } from "./Collaboration.js";
+import { getCollaborationRuntimeExtensions } from "./runtimeExtensions.js";
 
 /**
  * To find a fragment in another ydoc, we need to search for it.
@@ -86,14 +87,16 @@ export const ForkYDocExtension = createExtension(
         editor.unregisterExtension(["collaboration"]);
 
         // Re-register with the forked fragment (no cursor sharing — it's a local fork)
-        const { CollaborationExtension } = require("./Collaboration.js");
-        editor.registerExtension([
-          CollaborationExtension({
-            ...options,
-            fragment: forkedFragment,
-            provider: undefined, // No cursors in forked mode
-          }),
-        ]);
+        editor.registerExtension(
+          getCollaborationRuntimeExtensions(
+            {
+              ...options,
+              fragment: forkedFragment,
+              provider: undefined, // No cursors in forked mode
+            },
+            { includeFork: true },
+          ),
+        );
 
         store.setState({ isForked: true });
       },
@@ -116,8 +119,9 @@ export const ForkYDocExtension = createExtension(
         editor.unregisterExtension(["collaboration"]);
 
         // Re-register with the original fragment (restores cursor sharing)
-        const { CollaborationExtension } = require("./Collaboration.js");
-        editor.registerExtension([CollaborationExtension(options)]);
+        editor.registerExtension(
+          getCollaborationRuntimeExtensions(options, { includeFork: true }),
+        );
 
         if (keepChanges) {
           // Apply any changes that have been made to the fork, onto the original doc
